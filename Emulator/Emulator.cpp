@@ -448,15 +448,190 @@ void Group_1(BYTE opcode)
 				Registers[REGISTER_A] = Memory[address];
 			}
 			break;
+		case 0xD0:
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8)
+				+ Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_A] = Memory[address];
+			}
+			break;
+		case 0xE0:
+			HB = fetch();
+			LB = fetch();
+			address = (WORD)((WORD)HB << 8) + LB;
+			HB = Memory[address]; 
+			LB = Memory[address + 1];
+			address = (WORD)((WORD)HB << 8) + LB;
+			address += Index_Registers[REGISTER_X];
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8);
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_A] = Memory[address];
+			}
+			break;
+		case 0xAC:
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Memory[address] = Registers[REGISTER_A];
+			}
+			break;
+		case 0xBC:
+			address += Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Memory[address] = Registers[REGISTER_A];
+			}
+			break;
+		case 0xCC:
+			address += Index_Registers[REGISTER_Y];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Memory[address] = Registers[REGISTER_A];
+			}
+			break;
+		case 0x:
+			address += Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Memory[address] = Registers[REGISTER_A];
+			}
+			break;
+		case 0xDC:
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Memory[address] = Registers[REGISTER_A];
+			}
+			break;
+		case 0xEC:
+			HB = fetch();
+			LB = fetch();
+			address = (WORD)((WORD)HB << 8) + LB;
+			HB = Memory[address];
+			LB = Memory[address + 1];
+			address = (WORD)((WORD)HB << 8) + LB;
+			address += Index_Registers[REGISTER_X];
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8);
+			if (address >= 0 && address < MEMORY_SIZE) {
+				Memory[address] = Registers[REGISTER_A];
+			}
+			break;
+		case 0x07:
+			data = fetch();
+			Registers[REGISTER_B] = data;
+			break; //copy and paste for more opcodes
+		case 0x9D:
+			data = fetch();
+			StackPointer = data << 8;
+			StackPointer += fetch();
+			break;
+		case 0xAD:
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE - 1)
+			{
+				StackPointer = (WORD)(Memory[address] << 8;
+				StackPointer += Memory[address + 1];
+			}
+			break;
+		case 0xBD:
+			address += Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE - 1)
+			{
+				StackPointer = (WORD)Memory[address] << 8;
+				StackPointer += Memory[address + 1];
+			}
+			break;
+		case 0xCD:
+			address += Index_Registers[REGISTER_Y];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE - 1)
+			{
+				StackPointer = (WORD)Memory[address] << 8;
+				StackPointer += Memory[address + 1];
+			}
+			break;
+		case 0xDD:
+			address += (WORD((WORD)Index_Registers[REGISTER_Y] << 8) + index_Registers[REGISTERX];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD(WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE - 1)
+			{
+				StackPointer = (WORD)Memory[address] < 8;
+				StackPointer += Memory[address + 1];
+			}
+			break;
+		case 0xED:
+			HB = fetch();
+			LB = fetch();
+			address = (WORD)((WORD)HB << 8) + LB;
+			HB = Memory[address];
+			LB = Memory[address];
+			address = (WORD)((WORD)HB << 8) + LB;
+			address += Index_Registers[REGISTER_X];
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8);
+			if (address >= 0 && address < MEMORY_SIZE - 1) {
+				StackPointer = (WORD)Memory[address] < 8;
+				StackPointer += Memory[address + 1];
+			}
+
+
 	}
 }
 
 void Group_2_Move(BYTE opcode)
 {
-	switch(opcode) 
+
+	BYTE destination = opcode >> 4; 
+	BYTE source = opcode & 0x0F;
+	int destReg;
+	int sourceReg;
+	switch(destination) 
 	{
-		
+		case 0x00:
+			destReg = REGISTER_A;
+			break;
+		case 0x01:
+			destReg = REGISTER_B;
+			break; // you will need to do something similar for source aswell
+			Registers[destReg] = Registers[sourceReg];
+			
 	}
+	switch (opcode)
+	{
+		case 0x9D:
+			data = fetch();
+			StackPointer = data << 8;
+			StackPointer += fetch();
+				break;
+	}
+
 }
 
 
