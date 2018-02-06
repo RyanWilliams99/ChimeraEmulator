@@ -6,7 +6,7 @@
 #pragma comment(lib, "wsock32.lib")
 
 
-#define STUDENT_NUMBER    "12345678"
+#define STUDENT_NUMBER    "17009972"
 
 #define IP_ADDRESS_SERVER "127.0.0.1"
 
@@ -415,7 +415,38 @@ void Group_1(BYTE opcode)
 	switch(opcode) 
 	{
 		case 0x90: //LDA Immidiate
-		
+			data = fetch();
+			Registers[REGISTER_A] = data;
+			break;
+		case 0xA0:
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_A] = Memory[address];
+			}
+			break;
+		case 0xB0:
+
+			address += Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE) 
+			{
+				Registers[REGISTER_A] = Memory[address];
+			}
+			break;
+		case 0xc0:
+			address += Index_Registers[REGISTER_Y];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_A] = Memory[address];
+			}
 			break;
 	}
 }
