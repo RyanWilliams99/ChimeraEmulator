@@ -371,7 +371,7 @@ char opcode_mneumonics[][14] =
 //                           Simulator/Emulator (Start)                       //
 ////////////////////////////////////////////////////////////////////////////////
 
-BYTE fetch()
+BYTE fetch() //dont edit
 {
 	BYTE byte = 0;
 
