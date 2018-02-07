@@ -403,7 +403,19 @@ void set_flag_n(BYTE inReg)
 		Flags = Flags & (0xFF - FLAG_N);
 	}
 }
+void set_flag_v(BYTE in1, BYTE in2, BYTE out1)
+{
+	BYTE reg1in;
+	BYTE reg2in;
+	BYTE regOut;
+	reg1in = in1;
+	reg2in = in2;
+	regOut = out1;
+}
+void set_flag_z(BYTE inReg)
+{
 
+}
 
 void Group_1(BYTE opcode)
 {
@@ -411,9 +423,12 @@ void Group_1(BYTE opcode)
 	BYTE HB = 0;
 	WORD address = 0;
 	WORD data = 0;
+	WORD temp_word = 0;
+	BYTE param1, param2;
 
 	switch(opcode) 
 	{
+		
 		case 0x90: //LDA Immidiate
 			data = fetch();
 			Registers[REGISTER_A] = data;
@@ -502,7 +517,7 @@ void Group_1(BYTE opcode)
 				Memory[address] = Registers[REGISTER_A];
 			}
 			break;
-		case 0x:
+		case 0xC:
 			address += Index_Registers[REGISTER_X];
 			HB = fetch();
 			LB = fetch();
@@ -550,7 +565,7 @@ void Group_1(BYTE opcode)
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE - 1)
 			{
-				StackPointer = (WORD)(Memory[address] << 8;
+				StackPointer = (WORD)(Memory[address] << 8);
 				StackPointer += Memory[address + 1];
 			}
 			break;
@@ -577,10 +592,10 @@ void Group_1(BYTE opcode)
 			}
 			break;
 		case 0xDD:
-			address += (WORD((WORD)Index_Registers[REGISTER_Y] << 8) + index_Registers[REGISTERX];
+			address += (WORD((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X]);
 			HB = fetch();
 			LB = fetch();
-			address += (WORD(WORD)HB << 8) + LB;
+			address += (WORD((WORD)HB << 8) + LB);
 			if (address >= 0 && address < MEMORY_SIZE - 1)
 			{
 				StackPointer = (WORD)Memory[address] < 8;
@@ -600,7 +615,47 @@ void Group_1(BYTE opcode)
 				StackPointer = (WORD)Memory[address] < 8;
 				StackPointer += Memory[address + 1];
 			}
-
+			break;
+		case 0x23: // ADD A,B
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_B];
+			
+			if ((Flags & FLAG_C) != 0)
+			{
+				//temp_word++;
+			}
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_v(param1, param2,(BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x25:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_B];
+			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_B];
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			break;
+		case 0x0f:
+			Registers[REGISTER_A] = Flags;
+			break;
 
 	}
 }
@@ -626,8 +681,8 @@ void Group_2_Move(BYTE opcode)
 	switch (opcode)
 	{
 		case 0x9D:
-			data = fetch();
-			StackPointer = data << 8;
+			//data = fetch();
+			//StackPointer = data << 8;
 			StackPointer += fetch();
 				break;
 	}
