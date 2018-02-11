@@ -821,10 +821,12 @@ void Group_1(BYTE opcode)
 			set_flag_v(param1, param2, (BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
 			break;//------------------------------------------------------------------------------CMP END-----------------------------------------------------------------------------
-		case 0x0f:
+		/*case 0x0f:
 			Registers[REGISTER_A] = Flags;
-			break;
-		case 0x31: //-----------------------------------------------------------------------------LDX START------------------------------------------------------------------------------
+			break;*/
+		//-----------------------------------------------------------------------------LDX START------------------------------------------------------------------------------
+		// LOADS MEMORY INTO REGISTER X
+		case 0x31: 
 			data = fetch();
 			Registers[REGISTER_X] = data;
 			break;
@@ -882,7 +884,84 @@ void Group_1(BYTE opcode)
 				Registers[REGISTER_X] = Memory[address];
 			}
 			break; //------------------------------------------------------------------------------LDX END------------------------------------------------------------------------------
+		//------------------------------------------------------------------------------STX START------------------------------------------------------------------------------
+		//STORES REGISTER X INTO MEMEORY
+		case 0x02: 
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break;
+		case 0x12:
 
+			address += Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break;
+		case 0x22:
+			address += Index_Registers[REGISTER_Y];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break;
+		case 0x32:
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break;
+		case 0x42:
+			HB = fetch();
+			LB = fetch();
+			address = (WORD)((WORD)HB << 8) + LB;
+			HB = Memory[address];
+			LB = Memory[address + 1];
+			address = (WORD)((WORD)HB << 8) + LB;
+			address += Index_Registers[REGISTER_X];
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8);
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break; //------------------------------------------------------------------------------STX END------------------------------------------------------------------------------
+		case 0x0C: //Transters Accumulator to Register Y
+			break;
+		case 0x0D: //Transters register Y to Accumulator 
+			break;
+		case 0x0E: //Transters Accumulator to status register
+			break;
+		case 0x0F: //Transters Status register to accumulator
+			break;
+		case 0x9B: //loads memory into register
+			break;
+		case 0x18: //Clear Carry flag
+			break;
+		case 0x19: //Set Carry Flag
+			break;
+		case 0x1A: //Clear Interupt flag
+			break;
+		case 0x1B: //Set interupt flag
+			break;
+		case 0x1C: //Set overflow flag
+			break;
+		case 0x1D: //Clear overflow flag
+			break;
 	}
 }
 
