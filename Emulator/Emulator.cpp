@@ -1,10 +1,7 @@
-
-
 #include "stdafx.h"
 #include <winsock2.h>
 
 #pragma comment(lib, "wsock32.lib")
-
 
 #define STUDENT_NUMBER    "17009972"
 
@@ -411,7 +408,16 @@ void set_flag_v(BYTE in1, BYTE in2, BYTE out1)
 	reg1in = in1;
 	reg2in = in2;
 	regOut = out1;
+	if ((((reg1in & 0x80) == 0x80) && ((reg2in & 0x80) == 0x80) && ((regOut & 0x80) != 0x80))|| (((reg1in & 0x80) != 0x80) && ((reg2in & 0x80) != 0x80) && ((regOut & 0x80) == 0x80))) //overflow
+	{
+		Flags = Flags | FLAG_V;
+	}
+	else
+	{
+		Flags = Flags & (0xFF - FLAG_V);
+	}
 }
+
 void set_flag_z(BYTE inReg)
 {
 
@@ -428,8 +434,7 @@ void Group_1(BYTE opcode)
 
 	switch(opcode) 
 	{
-		
-		case 0x90: //LDA Immidiate
+		case 0x90: //-----------------------------------------------------------------------------LDA START------------------------------------------------------------------------------
 			data = fetch();
 			Registers[REGISTER_A] = data;
 			break;
@@ -453,7 +458,7 @@ void Group_1(BYTE opcode)
 				Registers[REGISTER_A] = Memory[address];
 			}
 			break;
-		case 0xc0:
+		case 0xC0:
 			address += Index_Registers[REGISTER_Y];
 			HB = fetch();
 			LB = fetch();
@@ -464,8 +469,7 @@ void Group_1(BYTE opcode)
 			}
 			break;
 		case 0xD0:
-			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8)
-				+ Index_Registers[REGISTER_X];
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
 			HB = fetch();
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
@@ -487,8 +491,8 @@ void Group_1(BYTE opcode)
 			{
 				Registers[REGISTER_A] = Memory[address];
 			}
-			break;
-		case 0xAC:
+			break; //------------------------------------------------------------------------------LDA END------------------------------------------------------------------------------
+		case 0xAC: //------------------------------------------------------------------------------STO START----------------------------------------------------------------------------
 			HB = fetch();
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
@@ -517,7 +521,7 @@ void Group_1(BYTE opcode)
 				Memory[address] = Registers[REGISTER_A];
 			}
 			break;
-		case 0xC:
+		case 0xDC:
 			address += Index_Registers[REGISTER_X];
 			HB = fetch();
 			LB = fetch();
@@ -527,7 +531,7 @@ void Group_1(BYTE opcode)
 				Memory[address] = Registers[REGISTER_A];
 			}
 			break;
-		case 0xDC:
+		case 0xEC:
 			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
 			HB = fetch();
 			LB = fetch();
@@ -536,8 +540,8 @@ void Group_1(BYTE opcode)
 			{
 				Memory[address] = Registers[REGISTER_A];
 			}
-			break;
-		case 0xEC:
+			break; //------------------------------------------------------------------------------STO END------------------------------------------------------------------------------
+		/*case 0xEC:
 			HB = fetch();
 			LB = fetch();
 			address = (WORD)((WORD)HB << 8) + LB;
@@ -549,12 +553,28 @@ void Group_1(BYTE opcode)
 			if (address >= 0 && address < MEMORY_SIZE) {
 				Memory[address] = Registers[REGISTER_A];
 			}
-			break;
-		case 0x07:
+			break;*/
+		case 0x07: //------------------------------------------------------------------------MV START--------------------------------------------------------------------------
 			data = fetch();
 			Registers[REGISTER_B] = data;
-			break; //copy and paste for more opcodes
-		case 0x9D:
+			break; 
+		case 0x08:
+			data = fetch();
+			Registers[REGISTER_C] = data;
+			break; 
+		case 0x09:
+			data = fetch();
+			Registers[REGISTER_D] = data;
+			break; 
+		case 0x0A:
+			data = fetch();
+			Registers[REGISTER_E] = data;
+			break; 
+		case 0x0B:
+			data = fetch();
+			Registers[REGISTER_F] = data;
+			break; //------------------------------------------------------------------------MV END-----------------------------------------------------------------------------
+		case 0x9D: //------------------------------------------------------------------------LODS START-------------------------------------------------------------------------
 			data = fetch();
 			StackPointer = data << 8;
 			StackPointer += fetch();
@@ -615,14 +635,14 @@ void Group_1(BYTE opcode)
 				StackPointer = (WORD)Memory[address] < 8;
 				StackPointer += Memory[address + 1];
 			}
-			break;
-		case 0x23: // ADD A,B
+			break; //------------------------------------------------------------------------------LODS END------------------------------------------------------------------------------
+		case 0x23: //------------------------------------------------------------------------------ADD START-----------------------------------------------------------------------------
 			param1 = Registers[REGISTER_A];
 			param2 = Registers[REGISTER_B];
 			
 			if ((Flags & FLAG_C) != 0)
 			{
-				//temp_word++;
+				temp_word++;
 			}
 			if (temp_word >= 0x100)
 			{
@@ -637,7 +657,91 @@ void Group_1(BYTE opcode)
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x25:
+		case 0x33: // ADD A,B
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_C];
+
+			if ((Flags & FLAG_C) != 0)
+			{
+				temp_word++;
+			}
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x43: // ADD A,B
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_D];
+
+			if ((Flags & FLAG_C) != 0)
+			{
+				temp_word++;
+			}
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x53: // ADD A,B
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_E];
+
+			if ((Flags & FLAG_C) != 0)
+			{
+				temp_word++;
+			}
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x63: // ADD A,B
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_F];
+
+			if ((Flags & FLAG_C) != 0)
+			{
+				temp_word++;
+			}
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break; //------------------------------------------------------------------------------ADD END-----------------------------------------------------------------------------
+		case 0x25: //------------------------------------------------------------------------------CMP START-----------------------------------------------------------------------------
 			param1 = Registers[REGISTER_A];
 			param2 = Registers[REGISTER_B];
 			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_B];
@@ -653,47 +757,276 @@ void Group_1(BYTE opcode)
 			set_flag_v(param1, param2, (BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
 			break;
-		case 0x0f:
-			Registers[REGISTER_A] = Flags;
+		case 0x35:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_C];
+			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_C];
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
 			break;
+		case 0x45:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_D];
+			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_D];
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			break;
+		case 0x55:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_E];
+			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_E];
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			break;
+		case 0x65:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_F];
+			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_F];
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			break;//------------------------------------------------------------------------------CMP END-----------------------------------------------------------------------------
+		/*case 0x0f:
+			Registers[REGISTER_A] = Flags;
+			break;*/
+		//-----------------------------------------------------------------------------LDX START------------------------------------------------------------------------------
+		// LOADS MEMORY INTO REGISTER X
+		case 0x31: 
+			data = fetch();
+			Registers[REGISTER_X] = data;
+			break;
+		case 0x41:
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break;
+		case 0x51:
 
+			address += Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break;
+		case 0x61:
+			address += Index_Registers[REGISTER_Y];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break;
+		case 0x71:
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break;
+		case 0x81:
+			HB = fetch();
+			LB = fetch();
+			address = (WORD)((WORD)HB << 8) + LB;
+			HB = Memory[address];
+			LB = Memory[address + 1];
+			address = (WORD)((WORD)HB << 8) + LB;
+			address += Index_Registers[REGISTER_X];
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8);
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break; //------------------------------------------------------------------------------LDX END------------------------------------------------------------------------------
+		//------------------------------------------------------------------------------STX START------------------------------------------------------------------------------
+		//STORES REGISTER X INTO MEMEORY
+		case 0x02: 
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break;
+		case 0x12:
+
+			address += Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break;
+		case 0x22:
+			address += Index_Registers[REGISTER_Y];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break;
+		case 0x32:
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break;
+		case 0x42:
+			HB = fetch();
+			LB = fetch();
+			address = (WORD)((WORD)HB << 8) + LB;
+			HB = Memory[address];
+			LB = Memory[address + 1];
+			address = (WORD)((WORD)HB << 8) + LB;
+			address += Index_Registers[REGISTER_X];
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8);
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Registers[REGISTER_X] = Memory[address];
+			}
+			break; //------------------------------------------------------------------------------STX END------------------------------------------------------------------------------
+		case 0x0C: //Transters Accumulator to Register Y
+			break;
+		case 0x0D: //Transters register Y to Accumulator 
+			break;
+		case 0x0E: //Transters Accumulator to status register
+			break;
+		case 0x0F: //Transters Status register to accumulator
+			break;
+		case 0x9B: //loads memory into register
+			break;
+		case 0x18: //Clear Carry flag
+			break;
+		case 0x19: //Set Carry Flag
+			break;
+		case 0x1A: //Clear Interupt flag
+			break;
+		case 0x1B: //Set interupt flag
+			break;
+		case 0x1C: //Set overflow flag
+			break;
+		case 0x1D: //Clear overflow flag
+			break;
 	}
 }
 
 void Group_2_Move(BYTE opcode)
 {
-
-	BYTE destination = opcode >> 4; 
-	BYTE source = opcode & 0x0F;
-	int destReg;
-	int sourceReg;
-	switch(destination) 
+	BYTE destination = opcode >> 4; //top four bits point at one register....shift right to keep only top four
+	BYTE source = opcode & 0x0F;//takes bottom four bits
+	int destReg = 0;
+	int sourceReg = 0;
+	switch (destination)//COMBO OF DEST AND SOURCE GIVE REGISTERS ADDRESSES TO FOR MEMORY ADRESSER AT BOTTOM
 	{
-		case 0x00:
+		case 0x02://top four bits from op code
 			destReg = REGISTER_A;
 			break;
-		case 0x01:
+		case 0x03:
 			destReg = REGISTER_B;
-			break; // you will need to do something similar for source aswell
-			Registers[destReg] = Registers[sourceReg];
-			
+			break;
+		case 0x04:
+			destReg = REGISTER_C;
+			break;
+		case 0x05:
+			destReg = REGISTER_D;
+			break;
+		case 0x06:
+			destReg = REGISTER_E;
+			break;
+		case 0x07:
+			destReg = REGISTER_F;
+			break;
 	}
-	switch (opcode)
+
+	switch (source)
 	{
-		case 0x9D:
-			//data = fetch();
-			//StackPointer = data << 8;
-			StackPointer += fetch();
-				break;
+		case 0x0A:
+			sourceReg = REGISTER_A;
+			break;
+		case 0x0B:
+			sourceReg = REGISTER_B;
+			break;
+		case 0x0C:
+			sourceReg = REGISTER_C;
+			break;
+		case 0x0D:
+			sourceReg = REGISTER_D;
+			break;
+		case 0x0E:
+			sourceReg = REGISTER_E;
+			break;
+		case 0x0F:
+			sourceReg = REGISTER_F;
+			break;
 	}
+	Registers[sourceReg] = Registers[destReg];//code to assign sourcereg to dest reg
 
 }
 
 
-void execute(BYTE opcode)
-{	
-
-	if ((opcode >= 0x2A) && (opcode <= 0x7F))
+void execute(BYTE opcode) //Dont edit
+{
+	if (((opcode >= 0x2A) && (opcode <= 0x2F))
+		|| ((opcode >= 0x3A) && (opcode <= 0x3F))
+		|| ((opcode >= 0x4A) && (opcode <= 0x4F))
+		|| ((opcode >= 0x5A) && (opcode <= 0x5F))
+		|| ((opcode >= 0x6A) && (opcode <= 0x6F))
+		|| ((opcode >= 0x7A) && (opcode <= 0x7F)))
 	{
 		Group_2_Move(opcode);
 	}
@@ -781,11 +1114,9 @@ void emulate()
 	printf("\n");  // New line
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 //                            Simulator/Emulator (End)                        //
 ////////////////////////////////////////////////////////////////////////////////
-
 
 void initialise_filenames() {
 	int i;
@@ -1203,7 +1534,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	printf("Microprocessor Emulator\n");
 	printf("UWE Computer and Network Systems Assignment 1\n");
 	printf("\n");
-
+	printf("%d",Registers[REGISTER_A]);
 	initialise_filenames();
 
 	if (WSAStartup(MAKEWORD(2, 2), &data) != 0) return(0);
