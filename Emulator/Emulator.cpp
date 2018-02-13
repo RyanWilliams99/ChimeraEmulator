@@ -641,6 +641,7 @@ void Group_1(BYTE opcode)
 			param1 = Registers[REGISTER_A];
 			param2 = Registers[REGISTER_B];
 			
+			temp_word = (WORD)param1 + (WORD)param2;
 			if ((Flags & FLAG_C) != 0)
 			{
 				temp_word++;
@@ -662,6 +663,7 @@ void Group_1(BYTE opcode)
 			param1 = Registers[REGISTER_A];
 			param2 = Registers[REGISTER_C];
 
+			temp_word = (WORD)param1 + (WORD)param2;
 			if ((Flags & FLAG_C) != 0)
 			{
 				temp_word++;
@@ -683,6 +685,7 @@ void Group_1(BYTE opcode)
 			param1 = Registers[REGISTER_A];
 			param2 = Registers[REGISTER_D];
 
+			temp_word = (WORD)param1 + (WORD)param2;
 			if ((Flags & FLAG_C) != 0)
 			{
 				temp_word++;
@@ -704,6 +707,7 @@ void Group_1(BYTE opcode)
 			param1 = Registers[REGISTER_A];
 			param2 = Registers[REGISTER_E];
 
+			temp_word = (WORD)param1 + (WORD)param2;
 			if ((Flags & FLAG_C) != 0)
 			{
 				temp_word++;
@@ -725,6 +729,7 @@ void Group_1(BYTE opcode)
 			param1 = Registers[REGISTER_A];
 			param2 = Registers[REGISTER_F];
 
+			temp_word = (WORD)param1 + (WORD)param2;
 			if ((Flags & FLAG_C) != 0)
 			{
 				temp_word++;
@@ -1115,7 +1120,49 @@ void Group_1(BYTE opcode)
 			++Index_Registers[REGISTER_X];
 			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
-		case 0x
+		case 0x27: //------------------------------------------------------------------------------ADD START-----------------------------------------------------------------------------
+			param1 = Registers[REGISTER_A]; //REPLACE PLUS WITH & remove adding the carry remove code that sets teh carry flag remove code that sets teh overflow flag add Flags = Flags & (0xFF - Flag_V);
+			param2 = Registers[REGISTER_B];
+
+			temp_word = (WORD)param1 & (WORD)param2;
+			if ((Flags & FLAG_C) != 0)
+			{
+				temp_word++;
+			}
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x29://BT almost identical to and except the result is not written back to register A only the flags are set
+
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_F];
+
+			if ((Flags & FLAG_C) != 0)
+			{
+				temp_word++;
+			}
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			break;
 	}
 }
 
