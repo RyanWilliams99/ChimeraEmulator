@@ -431,6 +431,7 @@ void Group_1(BYTE opcode)
 	WORD data = 0;
 	WORD temp_word = 0;
 	BYTE param1, param2;
+	WORD offset;
 
 	switch(opcode) 
 	{
@@ -962,6 +963,159 @@ void Group_1(BYTE opcode)
 			break;
 		case 0x1D: //Clear overflow flag
 			break;
+		case 0x9E: //PUSH
+			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
+			{
+				Memory[StackPointer] = Registers[REGISTER_A];
+				StackPointer--;
+			}
+			break;
+		//case 0xAE: //PUSH
+		//	if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
+		//	{
+		//		Memory[StackPointer] = Registers[REGISTER_A];
+		//		StackPointer--;
+		//	}
+		//	break;
+		case 0xBE: //PUSH
+			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
+			{
+				Memory[StackPointer] = Registers[REGISTER_B];
+				StackPointer--;
+			}
+			break;
+		case 0xCE: //PUSH
+			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
+			{
+				Memory[StackPointer] = Registers[REGISTER_C];
+				StackPointer--;
+			}
+			break;
+		case 0xDE: //PUSH
+			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
+			{
+				Memory[StackPointer] = Registers[REGISTER_D];
+				StackPointer--;
+			}
+			break;
+		case 0xEE: //PUSH
+			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
+			{
+				Memory[StackPointer] = Registers[REGISTER_E];
+				StackPointer--;
+			}
+			break;
+		case 0xFE: //PUSH
+			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
+			{
+				Memory[StackPointer] = Registers[REGISTER_F];
+				StackPointer--;
+			}
+			break;
+		case 0x9F: //POP
+			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
+			{
+				StackPointer++;
+				Registers[REGISTER_A] = Memory[StackPointer];
+				
+			}
+			break;
+		case 0xAF: //POP
+			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
+			{
+				StackPointer++;
+				Registers[REGISTER_A] = Memory[StackPointer];
+
+			}
+			break;
+		case 0xBF: //POP
+			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
+			{
+				StackPointer++;
+				Registers[REGISTER_B] = Memory[StackPointer];
+
+			}
+			break;
+		case 0xCF: //POP
+			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
+			{
+				StackPointer++;
+				Registers[REGISTER_C] = Memory[StackPointer];
+
+			}
+			break;
+		case 0xDF: //POP
+			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
+			{
+				StackPointer++;
+				Registers[REGISTER_D] = Memory[StackPointer];
+
+			}
+			break;
+		case 0xEF: //POP
+			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
+			{
+				StackPointer++;
+				Registers[REGISTER_E] = Memory[StackPointer];
+
+			}
+			break;
+		case 0xFF: //POP
+			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
+			{
+				StackPointer++;
+				Registers[REGISTER_F] = Memory[StackPointer];
+
+			}
+			break;
+		case 0xEA://JMP ABS
+			HB = fetch();
+			LB = fetch();
+			address = ((WORD)HB << 8) + (WORD)LB;
+			ProgramCounter = address;
+			break;
+		case 0xE9://JSR ABS
+			HB = fetch();
+			LB = fetch();
+			address = ((WORD)HB << 8) + (WORD)LB;
+			if ((StackPointer >= 2) && (StackPointer < MEMORY_SIZE))
+			{
+				Memory[StackPointer] = (BYTE)(ProgramCounter & 0xFF);
+				StackPointer--;
+				Memory[StackPointer] = (BYTE)((ProgramCounter >> 8) & 0xFF);
+				StackPointer--;
+			}
+			break;
+		case 0xDB: //RTN
+			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 2))
+			{
+				StackPointer++;
+				HB = Memory[StackPointer];
+				StackPointer++;
+				LB = Memory[StackPointer];
+			}
+			ProgramCounter = ((WORD)HB << 8) + (WORD)LB;
+			break;
+		case 0xF0: //BRA
+			LB = fetch();
+			offset = (WORD)LB;
+			if ((offset & 0x80) != 0) 
+			{
+				offset = offset + 0xFF00;
+			}
+			address = ProgramCounter + offset;
+			ProgramCounter = address;
+			break;
+		case 0xD2: //INCA
+			++Registers[REGISTER_A];
+			set_flag_n(Registers[REGISTER_A]);
+			set_flag_z(Registers[REGISTER_A]);
+			break;
+		case 0xE2: //INX
+			++Index_Registers[REGISTER_X];
+			set_flag_z(Index_Registers[REGISTER_X]);
+			break;
+		case 0x
 	}
 }
 
