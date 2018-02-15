@@ -435,7 +435,7 @@ void Group_1(BYTE opcode)
 
 	switch(opcode) 
 	{
-		case 0x90: //-----------------------------------------------------------------------------LDA START------------------------------------------------------------------------------
+		case 0x90: //LDA - Loads Memory into Accumulator
 			data = fetch();
 			Registers[REGISTER_A] = data;
 			break;
@@ -449,7 +449,6 @@ void Group_1(BYTE opcode)
 			}
 			break;
 		case 0xB0:
-
 			address += Index_Registers[REGISTER_X];
 			HB = fetch();
 			LB = fetch();
@@ -492,8 +491,8 @@ void Group_1(BYTE opcode)
 			{
 				Registers[REGISTER_A] = Memory[address];
 			}
-			break; //------------------------------------------------------------------------------LDA END------------------------------------------------------------------------------
-		case 0xAC: //------------------------------------------------------------------------------STO START----------------------------------------------------------------------------
+			break; 
+		case 0xAC: //STO - Stores Accumulator into Memory
 			HB = fetch();
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
@@ -541,7 +540,7 @@ void Group_1(BYTE opcode)
 			{
 				Memory[address] = Registers[REGISTER_A];
 			}
-			break; //------------------------------------------------------------------------------STO END------------------------------------------------------------------------------
+			break;
 		/*case 0xEC:
 			HB = fetch();
 			LB = fetch();
@@ -555,7 +554,7 @@ void Group_1(BYTE opcode)
 				Memory[address] = Registers[REGISTER_A];
 			}
 			break;*/
-		case 0x07: //------------------------------------------------------------------------MV START--------------------------------------------------------------------------
+		case 0x07: //MV - loads Memory into register
 			data = fetch();
 			Registers[REGISTER_B] = data;
 			break; 
@@ -574,8 +573,8 @@ void Group_1(BYTE opcode)
 		case 0x0B:
 			data = fetch();
 			Registers[REGISTER_F] = data;
-			break; //------------------------------------------------------------------------MV END-----------------------------------------------------------------------------
-		case 0x9D: //------------------------------------------------------------------------LODS START-------------------------------------------------------------------------
+			break; 
+		case 0x9D: //LODS - Loads Memory into Stackpointer
 			data = fetch();
 			StackPointer = data << 8;
 			StackPointer += fetch();
@@ -636,7 +635,7 @@ void Group_1(BYTE opcode)
 				StackPointer = (WORD)Memory[address] < 8;
 				StackPointer += Memory[address + 1];
 			}
-			break; //------------------------------------------------------------------------------LODS END------------------------------------------------------------------------------
+			break;
 		case 0x23: //------------------------------------------------------------------------------ADD START-----------------------------------------------------------------------------
 			param1 = Registers[REGISTER_A]; //add still wrong
 			param2 = Registers[REGISTER_B];
@@ -747,7 +746,7 @@ void Group_1(BYTE opcode)
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break; //------------------------------------------------------------------------------ADD END-----------------------------------------------------------------------------
-		case 0x25: //------------------------------------------------------------------------------CMP START-----------------------------------------------------------------------------
+		case 0x25: //CMP - Register compared to Accumulator
 			param1 = Registers[REGISTER_A];
 			param2 = Registers[REGISTER_B];
 			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_B];
@@ -826,13 +825,12 @@ void Group_1(BYTE opcode)
 			set_flag_n((BYTE)temp_word);
 			set_flag_v(param1, param2, (BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
-			break;//------------------------------------------------------------------------------CMP END-----------------------------------------------------------------------------
+			break;
 		/*case 0x0f:
 			Registers[REGISTER_A] = Flags;
 			break;*/
-		//-----------------------------------------------------------------------------LDX START------------------------------------------------------------------------------
-		// LOADS MEMORY INTO REGISTER X
-		case 0x31: 
+
+		case 0x31: //LDX - Loads Memory into Register X
 			data = fetch();
 			Registers[REGISTER_X] = data;
 			break;
@@ -889,10 +887,8 @@ void Group_1(BYTE opcode)
 			{
 				Registers[REGISTER_X] = Memory[address];
 			}
-			break; //------------------------------------------------------------------------------LDX END------------------------------------------------------------------------------
-		//------------------------------------------------------------------------------STX START------------------------------------------------------------------------------
-		//STORES REGISTER X INTO MEMEORY
-		case 0x02: 
+			break;
+		case 0x02: //STX - Stores Register X into Memory
 			HB = fetch();
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
@@ -945,7 +941,7 @@ void Group_1(BYTE opcode)
 			{
 				Registers[REGISTER_X] = Memory[address];
 			}
-			break; //------------------------------------------------------------------------------STX END------------------------------------------------------------------------------
+			break;
 		case 0x0C: //Transters Accumulator to Register Y
 			break;
 		case 0x0D: //Transters register Y to Accumulator 
@@ -968,96 +964,91 @@ void Group_1(BYTE opcode)
 			break;
 		case 0x1D: //Clear overflow flag
 			break;
-		case 0x9E: //PUSH
+		case 0x9E: // PUSH - Pushes Register onto the stack
 			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
 			{
 				Memory[StackPointer] = Registers[REGISTER_A];
 				StackPointer--;
 			}
 			break;
-		//case 0xAE: //PUSH
-		//	if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
-		//	{
-		//		Memory[StackPointer] = Registers[REGISTER_A];
-		//		StackPointer--;
-		//	}
-		//	break;
-		case 0xBE: //PUSH
+		case 0xAE: // Status Register?
+			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
+			{
+				Memory[StackPointer] = Registers[REGISTER_A];
+				StackPointer--;
+			}
+			break;
+		case 0xBE: 
 			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
 			{
 				Memory[StackPointer] = Registers[REGISTER_B];
 				StackPointer--;
 			}
 			break;
-		case 0xCE: //PUSH
+		case 0xCE: 
 			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
 			{
 				Memory[StackPointer] = Registers[REGISTER_C];
 				StackPointer--;
 			}
 			break;
-		case 0xDE: //PUSH
+		case 0xDE: 
 			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
 			{
 				Memory[StackPointer] = Registers[REGISTER_D];
 				StackPointer--;
 			}
 			break;
-		case 0xEE: //PUSH
+		case 0xEE: 
 			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
 			{
 				Memory[StackPointer] = Registers[REGISTER_E];
 				StackPointer--;
 			}
 			break;
-		case 0xFE: //PUSH
+		case 0xFE: 
 			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
 			{
 				Memory[StackPointer] = Registers[REGISTER_F];
 				StackPointer--;
 			}
 			break;
-		case 0x9F: //POP
+		case 0x9F: //POP - Pop the top of the Stack into the Register
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
 				Registers[REGISTER_A] = Memory[StackPointer];
-				
 			}
 			break;
-		case 0xAF: //POP
+		case 0xAF: // Status Register?
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
 				Registers[REGISTER_A] = Memory[StackPointer];
-
 			}
 			break;
-		case 0xBF: //POP
+		case 0xBF: 
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
 				Registers[REGISTER_B] = Memory[StackPointer];
-
 			}
 			break;
-		case 0xCF: //POP
+		case 0xCF: 
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
 				Registers[REGISTER_C] = Memory[StackPointer];
-
 			}
 			break;
-		case 0xDF: //POP
+		case 0xDF: 
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
 				Registers[REGISTER_D] = Memory[StackPointer];
-
 			}
 			break;
-		case 0xEF: //POP
+		case 0xEF: 
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
@@ -1065,21 +1056,20 @@ void Group_1(BYTE opcode)
 
 			}
 			break;
-		case 0xFF: //POP
+		case 0xFF: 
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
 				Registers[REGISTER_F] = Memory[StackPointer];
-
 			}
 			break;
-		case 0xEA://JMP ABS
+		case 0xEA://JMP - Loads memory in ProgramCounter
 			HB = fetch();
 			LB = fetch();
 			address = ((WORD)HB << 8) + (WORD)LB;
 			ProgramCounter = address;
 			break;
-		case 0xE9://JSR ABS
+		case 0xE9://JSR - Jump To subroutine
 			HB = fetch();
 			LB = fetch();
 			address = ((WORD)HB << 8) + (WORD)LB;
@@ -1091,7 +1081,7 @@ void Group_1(BYTE opcode)
 				StackPointer--;
 			}
 			break;
-		case 0xDB: //RTN
+		case 0xDB: //RTN - Return from subroutine
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 2))
 			{
 				StackPointer++;
@@ -1101,7 +1091,7 @@ void Group_1(BYTE opcode)
 			}
 			ProgramCounter = ((WORD)HB << 8) + (WORD)LB;
 			break;
-		case 0xF0: //BRA
+		case 0xF0: //BRA - Branch always
 			LB = fetch();
 			offset = (WORD)LB;
 			if ((offset & 0x80) != 0) 
@@ -1111,14 +1101,26 @@ void Group_1(BYTE opcode)
 			address = ProgramCounter + offset;
 			ProgramCounter = address;
 			break;
-		case 0xD2: //INCA
+		case 0xD2: //INCA - Increment Memory or Accumulator
 			++Registers[REGISTER_A];
 			set_flag_n(Registers[REGISTER_A]);
 			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xE2: //INX
+		case 0xE1: //DEX decrements register X
+			--Index_Registers[REGISTER_X];
+			set_flag_z(Index_Registers[REGISTER_X]);
+			break;
+		case 0xE2: //INX - Increments Register X
 			++Index_Registers[REGISTER_X];
 			set_flag_z(Index_Registers[REGISTER_X]);
+			break;
+		case 0xE3: //DEX decrements register Y
+			--Index_Registers[REGISTER_Y];
+			set_flag_z(Index_Registers[REGISTER_Y]);
+			break;
+		case 0xE4: //INCY - Increments Register Y
+			++Index_Registers[REGISTER_Y];
+			set_flag_z(Index_Registers[REGISTER_Y]);
 			break;
 		case 0x27: //------------------------------------------------------------------------------ADD START-----------------------------------------------------------------------------
 			param1 = Registers[REGISTER_A]; //REPLACE PLUS WITH & remove adding the carry remove code that sets teh carry flag remove code that sets teh overflow flag add Flags = Flags & (0xFF - Flag_V);
@@ -1163,6 +1165,47 @@ void Group_1(BYTE opcode)
 			set_flag_v(param1, param2, (BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
 			break;
+		case 0xF1: //BCC Branch on Carry flag
+
+			break;
+		case 0xF2: //BCS Branch on Carry set
+
+			break;	
+		case 0xF3: //BNE Branch on Result not zero
+
+			break;
+		case 0xF4: //BEQ Branch on carry set
+
+			break;
+		case 0xF5: //BVC Branch on overflow clear
+
+			break;
+		case 0xF6: //BVS branch on overflow set
+
+			break;
+		case 0xF7: //BMI Breanch on negative result
+
+			break;
+		case 0xF8: //Branch on positive result
+
+			break;
+		case 0xF9: //BGE Branch on result less than or equal to zero
+
+			break;
+		case 0xFA: //BLE Branch on result Greater than or equal to zero
+
+			break;
+		case 0xFB: //BGT Branch on result less than zero
+
+			break;
+		case 0xFC: //BLT Branch on result greater than zero
+
+			break;
+		case 0x92: //INC Increment memeory or accumaultor 
+
+			break;
+
+		
 	}
 }
 
