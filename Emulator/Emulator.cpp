@@ -33,7 +33,7 @@ char trc_file [MAX_BUFFER_SIZE];
 //   Registers          //
 //////////////////////////
 
-#define FLAG_I  0x10
+#define FLAG_I  0x10 //one bit each
 #define FLAG_V  0x08
 #define FLAG_N  0x04
 #define FLAG_Z  0x02
@@ -49,7 +49,7 @@ char trc_file [MAX_BUFFER_SIZE];
 BYTE Index_Registers[2];
 
 BYTE Registers[6];
-BYTE Flags;
+BYTE Flags; //to store flgs
 WORD ProgramCounter;
 WORD StackPointer;
 
@@ -1165,10 +1165,39 @@ void Group_1(BYTE opcode)
 			set_flag_v(param1, param2, (BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
 			break;
-		case 0xF1: //BCC Branch on Carry flag
-
+		case 0xF1: //BCC Branch on Carry clear
+			LB = fetch();
+			if ((Flags & FLAG_C) == 0)
+			{
+				offset = (WORD)LB;
+				if ((offset & 0x80) != 0)
+				{
+					offset = offset + 0xFF00;
+				}
+				address = ProgramCounter + offset;
+				ProgramCounter = address; //EXACT SAME CHANGE  != to == fr carry clear for multiple flags set up multiple varibles
+			}
 			break;
 		case 0xF2: //BCS Branch on Carry set
+			LB = fetch();
+			if ((Flags & FLAG_C) != 0)
+			{
+				offset = (WORD)LB;
+				if ((offset & 0x80) != 0)
+				{
+					offset = offset + 0xFF00;
+				}
+				address = ProgramCounter + offset;
+				ProgramCounter = address; //EXACT SAME CHANGE  != to == fr carry clear for multiple flags set up multiple varibles
+			}
+			/*if ((Flags & FLAG_C) != 0)
+			{
+				BYTE temp.carry = 1;
+			}
+			else temp carry = 0
+			}
+*/
+			//sor overflow and negative flag ! for other way rount
 
 			break;	
 		case 0xF3: //BNE Branch on Result not zero
