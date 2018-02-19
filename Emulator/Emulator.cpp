@@ -435,6 +435,7 @@ void Group_1(BYTE opcode)
 
 	switch(opcode) 
 	{
+		
 		case 0x90: //LDA - Loads Memory into Accumulator
 			data = fetch();
 			Registers[REGISTER_A] = data;
@@ -443,8 +444,7 @@ void Group_1(BYTE opcode)
 			HB = fetch();
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
-			if (address >= 0 && address < MEMORY_SIZE)
-			{
+			if (address >= 0 && address < MEMORY_SIZE){
 				Registers[REGISTER_A] = Memory[address];
 			}
 			break;
@@ -453,8 +453,7 @@ void Group_1(BYTE opcode)
 			HB = fetch();
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
-			if (address >= 0 && address < MEMORY_SIZE) 
-			{
+			if (address >= 0 && address < MEMORY_SIZE) {
 				Registers[REGISTER_A] = Memory[address];
 			}
 			break;
@@ -463,8 +462,7 @@ void Group_1(BYTE opcode)
 			HB = fetch();
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
-			if (address >= 0 && address < MEMORY_SIZE)
-			{
+			if (address >= 0 && address < MEMORY_SIZE){
 				Registers[REGISTER_A] = Memory[address];
 			}
 			break;
@@ -473,8 +471,7 @@ void Group_1(BYTE opcode)
 			HB = fetch();
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
-			if (address >= 0 && address < MEMORY_SIZE)
-			{
+			if (address >= 0 && address < MEMORY_SIZE){
 				Registers[REGISTER_A] = Memory[address];
 			}
 			break;
@@ -487,11 +484,11 @@ void Group_1(BYTE opcode)
 			address = (WORD)((WORD)HB << 8) + LB;
 			address += Index_Registers[REGISTER_X];
 			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8);
-			if (address >= 0 && address < MEMORY_SIZE)
-			{
+			if (address >= 0 && address < MEMORY_SIZE)	{
 				Registers[REGISTER_A] = Memory[address];
 			}
 			break; 
+
 		case 0xAC: //STO - Stores Accumulator into Memory
 			HB = fetch();
 			LB = fetch();
@@ -1037,13 +1034,20 @@ void Group_1(BYTE opcode)
 				Registers[REGISTER_X] = Memory[address];
 			}
 			break;
-		case 0x0C: //Transters Accumulator to Register Y
+		case 0x0C: //MAY - Transfers Accumulator to Register Y
+			data = Registers[REGISTER_A];
+			Registers[REGISTER_Y] = data;
 			break;
-		case 0x0D: //Transters register Y to Accumulator 
+		case 0x0D: //Transfers register Y to Accumulator 
+
 			break;
-		case 0x0E: //Transters Accumulator to status register
+		case 0x0E: //MAS - Transters Accumulator to status register
+			Flags = Registers[REGISTER_A];
 			break;
-		case 0x9B: //loads memory into register
+		case 0x9B: //LX - loads memory into register pair AB,#
+			data = fetch();
+			data = Registers[REGISTER_A];
+			data = Registers[REGISTER_B];
 			break;
 		case 0x18: //Clear Carry flag
 			break;
