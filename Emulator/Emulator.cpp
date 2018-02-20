@@ -50,6 +50,7 @@ BYTE Index_Registers[2];
 
 BYTE Registers[6];
 BYTE Flags; //to store flgs
+BYTE saved_flags;
 WORD ProgramCounter;
 WORD StackPointer;
 
@@ -679,7 +680,7 @@ void Group_1(BYTE opcode)
 				Flags = Flags & (0xFF - FLAG_C);
 			}
 			set_flag_n((BYTE)temp_word);
-			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_v(param1, -param2, data);
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
@@ -696,7 +697,7 @@ void Group_1(BYTE opcode)
 				Flags = Flags & (0xFF - FLAG_C);
 			}
 			set_flag_n((BYTE)temp_word);
-			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_v(param1, -param2, data);
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
@@ -713,7 +714,7 @@ void Group_1(BYTE opcode)
 				Flags = Flags & (0xFF - FLAG_C);
 			}
 			set_flag_n((BYTE)temp_word);
-			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_v(param1, -param2, data);
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
@@ -730,7 +731,7 @@ void Group_1(BYTE opcode)
 				Flags = Flags & (0xFF - FLAG_C);
 			}
 			set_flag_n((BYTE)temp_word);
-			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_v(param1, -param2, data);
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
@@ -747,7 +748,7 @@ void Group_1(BYTE opcode)
 				Flags = Flags & (0xFF - FLAG_C);
 			}
 			set_flag_n((BYTE)temp_word);
-			set_flag_v(param1, param2, (BYTE)temp_word);
+			set_flag_v(param1, -param2, data);
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
@@ -832,7 +833,6 @@ void Group_1(BYTE opcode)
 			set_flag_v(param1, param2, (BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
 			break;
-
 		case 0x07: //MV - loads Memory into register
 			data = fetch();
 			Registers[REGISTER_B] = data;
@@ -853,7 +853,9 @@ void Group_1(BYTE opcode)
 			data = fetch();
 			Registers[REGISTER_F] = data;
 			break; 
-
+		case 0xD8: //COMA
+			
+			break;
 		case 0x9D: //LODS - Loads Memory into Stackpointer
 			data = fetch();
 			StackPointer = data << 8;
@@ -1219,15 +1221,12 @@ void Group_1(BYTE opcode)
 			++Index_Registers[REGISTER_Y];
 			set_flag_z(Index_Registers[REGISTER_Y]);
 			break;
-		case 0x27: //------------------------------------------------------------------------------ADD START-----------------------------------------------------------------------------
-			param1 = Registers[REGISTER_A]; //REPLACE PLUS WITH & remove adding the carry remove code that sets teh carry flag remove code that sets teh overflow flag add Flags = Flags & (0xFF - Flag_V);
+
+		case 0x26: //OR - Register bitwise inclusive or with Accumulator
+			param1 = Registers[REGISTER_A];
 			param2 = Registers[REGISTER_B];
 
-			temp_word = (WORD)param1 & (WORD)param2;
-			if ((Flags & FLAG_C) != 0)
-			{
-				temp_word++;
-			}
+			temp_word = (WORD)param1 | (WORD)param2;
 			if (temp_word >= 0x100)
 			{
 				Flags = Flags | FLAG_C;
@@ -1237,19 +1236,69 @@ void Group_1(BYTE opcode)
 				Flags = Flags & (0xFF - FLAG_C);
 			}
 			set_flag_n((BYTE)temp_word);
-			set_flag_v(param1, param2, (BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x29://BT almost identical to and except the result is not written back to register A only the flags are set
+		case 0x36:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_C];
 
+			temp_word = (WORD)param1 | (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x46:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_D];
+
+			temp_word = (WORD)param1 | (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x56:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_E];
+
+			temp_word = (WORD)param1 | (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x66:
 			param1 = Registers[REGISTER_A];
 			param2 = Registers[REGISTER_F];
 
-			if ((Flags & FLAG_C) != 0)
-			{
-				temp_word++;
-			}
+			temp_word = (WORD)param1 | (WORD)param2;
 			if (temp_word >= 0x100)
 			{
 				Flags = Flags | FLAG_C;
@@ -1259,8 +1308,319 @@ void Group_1(BYTE opcode)
 				Flags = Flags & (0xFF - FLAG_C);
 			}
 			set_flag_n((BYTE)temp_word);
-			set_flag_v(param1, param2, (BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+
+		case 0x27: //AND - Register	bitwise and with accumulator
+			param1 = Registers[REGISTER_A]; 
+			param2 = Registers[REGISTER_B];
+
+			temp_word = (WORD)param1 & (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x37:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_C];
+
+			temp_word = (WORD)param1 & (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x47: 
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_D];
+
+			temp_word = (WORD)param1 & (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x57: 
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_E];
+
+			temp_word = (WORD)param1 & (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x67: 
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_F];
+
+			temp_word = (WORD)param1 & (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+
+		case 0x28: //XOR - Register bitwise exclusive or with Accumulator
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_B];
+
+			temp_word = (WORD)param1 ^ (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x38:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_C];
+
+			temp_word = (WORD)param1 ^ (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x48:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_D];
+
+			temp_word = (WORD)param1 ^ (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x58:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_E];
+
+			temp_word = (WORD)param1 ^ (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		case 0x68:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_F];
+
+			temp_word = (WORD)param1 ^ (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			Registers[REGISTER_A] = (BYTE)temp_word;
+			break;
+		
+		case 0x29: //BT Register bit tested with accumulator
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_B];
+
+			temp_word = (WORD)param1 & (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			
+			break;
+		case 0x39:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_C];
+
+			temp_word = (WORD)param1 & (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			
+			break;
+		case 0x49:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_D];
+
+			temp_word = (WORD)param1 & (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			
+			break;
+		case 0x59:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_E];
+
+			temp_word = (WORD)param1 & (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			
+			break;
+		case 0x69:
+			param1 = Registers[REGISTER_A];
+			param2 = Registers[REGISTER_F];
+
+			temp_word = (WORD)param1 & (WORD)param2;
+			if (temp_word >= 0x100)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			set_flag_n((BYTE)temp_word);
+			set_flag_z((BYTE)temp_word);
+			Flags = Flags & (0xFF - FLAG_V); //Clear overflow flag
+			break;
+
+		case 0xD5: //RLCA - Rotate left thorugh carry memory or accumulator
+			saved_flags = Flags;
+			if ((Registers[REGISTER_A] & 0x80) == 0x80)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			Registers[REGISTER_A] = (Registers[REGISTER_A] << 1) & 0xFE;
+			if ((saved_flags & FLAG_C) == FLAG_C)
+			{
+				Registers[REGISTER_A] = Registers[REGISTER_A] | 0x01;
+			}
+			set_flag_n(REGISTER_A);
+			set_flag_z(REGISTER_A);
+			break;
+
+		case 0xD6: //ASLA - Arithmetic shift left Memory or Accumulator
+			saved_flags = Flags;
+			if ((Registers[REGISTER_A] & 0x80) == 0x80)
+			{
+				Flags = Flags | FLAG_C;
+			}
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C);
+			}
+			Registers[REGISTER_A] = (Registers[REGISTER_A] << 1) & 0xFE;
+			if ((saved_flags & FLAG_C) == FLAG_C)
+			{
+				Registers[REGISTER_A] = Registers[REGISTER_A] | 0x01;
+			}
+			set_flag_n(REGISTER_A);
+			set_flag_z(REGISTER_A);
 			break;
 		case 0xF1: //BCC Branch on Carry clear
 			LB = fetch();
@@ -1298,7 +1658,17 @@ void Group_1(BYTE opcode)
 
 			break;	
 		case 0xF3: //BNE Branch on Result not zero
-
+			LB = fetch();
+			if ((Flags & FLAG_Z) != 0)
+			{
+				offset = (WORD)LB;
+				if ((offset & 0x80) != 0)
+				{
+					offset = offset + 0xFF00;
+				}
+				address = ProgramCounter + offset;
+				ProgramCounter = address; //EXACT SAME CHANGE  != to == fr carry clear for multiple flags set up multiple varibles
+			}
 			break;
 		case 0xF4: //BEQ Branch on carry set
 
