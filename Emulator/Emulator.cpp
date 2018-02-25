@@ -1,3 +1,9 @@
+//
+// Author Ryan Williams
+//
+//
+//
+//
 #include "stdafx.h"
 #include <winsock2.h>
 
@@ -387,20 +393,7 @@ BYTE fetch() //dont edit
 }
 
 
-void set_flag_n(BYTE inReg) 
-{
-	BYTE reg; 
-	reg = inReg; 
 
-	if ((reg & 0x80) != 0) // msbit set 
-	{ 
-		Flags = Flags | FLAG_N;
-	}
-	else 
-	{ 
-		Flags = Flags & (0xFF - FLAG_N);
-	}
-}
 void set_flag_v(BYTE in1, BYTE in2, BYTE out1)
 {
 	BYTE reg1in;
@@ -416,6 +409,21 @@ void set_flag_v(BYTE in1, BYTE in2, BYTE out1)
 	else
 	{
 		Flags = Flags & (0xFF - FLAG_V);
+	}
+}
+
+void set_flag_n(BYTE inReg)
+{
+	BYTE reg;
+	reg = inReg;
+
+	if ((reg & 0x80) != 0) // msbit set 
+	{
+		Flags = Flags | FLAG_N;
+	}
+	else
+	{
+		Flags = Flags & (0xFF - FLAG_N);
 	}
 }
 
@@ -1239,8 +1247,9 @@ void Group_1(BYTE opcode)
 
 
 		case 0x82: //ADI - Data added to Accumulator with carry
+			data = fetch();
 			param1 = Registers[REGISTER_A];
-			param2 = Registers[REGISTER_B];
+			param2 = data;
 
 			temp_word = (WORD)param1 + (WORD)param2;
 			if ((Flags & FLAG_C) != 0)
@@ -1258,7 +1267,7 @@ void Group_1(BYTE opcode)
 			set_flag_v(param1, param2, (BYTE)temp_word);
 			set_flag_n((BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
-			Registers[REGISTER_A] = (BYTE)temp_word;
+
 			break;
 	
 		
@@ -1297,12 +1306,51 @@ void Group_1(BYTE opcode)
 
 
 		case 0x92: //INC - Increment Memory or Accumulator
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Memory[address] = Registers[REGISTER_A]++;
+			}
+			set_flag_n(Registers[REGISTER_A]);
+			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xA2: 
+		case 0xA2:
+			address += Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Memory[address] = Registers[REGISTER_A]++;
+			}
+			set_flag_n(Registers[REGISTER_A]);
+			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xB2: 
+		case 0xB2:
+			address += Index_Registers[REGISTER_Y];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Memory[address] = Registers[REGISTER_A]++;
+			}
+			set_flag_n(Registers[REGISTER_A]);
+			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xC2: 
+		case 0xC2:
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
+			HB = fetch();
+			LB = fetch();
+			address += (WORD)((WORD)HB << 8) + LB;
+			if (address >= 0 && address < MEMORY_SIZE)
+			{
+				Memory[address] = Registers[REGISTER_A]++;
+			}
+			set_flag_n(Registers[REGISTER_A]);
+			set_flag_z(Registers[REGISTER_A]);
 			break;
 
 
@@ -1533,8 +1581,8 @@ void Group_1(BYTE opcode)
 			{
 				Index_Registers[REGISTER_X] = Memory[address];
 			}
-			set_flag_n(Index_Registers[REGISTER_A]);
-			set_flag_z(Index_Registers[REGISTER_A]);
+			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 		case 0x61:
 			address += Index_Registers[REGISTER_Y];
@@ -1545,8 +1593,8 @@ void Group_1(BYTE opcode)
 			{
 				Index_Registers[REGISTER_X] = Memory[address];
 			}
-			set_flag_n(Index_Registers[REGISTER_A]);
-			set_flag_z(Index_Registers[REGISTER_A]);
+			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 		case 0x71:
 			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
@@ -1557,8 +1605,8 @@ void Group_1(BYTE opcode)
 			{
 				Index_Registers[REGISTER_X] = Memory[address];
 			}
-			set_flag_n(Index_Registers[REGISTER_A]);
-			set_flag_z(Index_Registers[REGISTER_A]);
+			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 		case 0x81:
 			HB = fetch();
@@ -1584,7 +1632,7 @@ void Group_1(BYTE opcode)
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
-				Index_Registers[REGISTER_X] = Memory[address];
+				Memory[address] = Index_Registers[REGISTER_X];
 			}
 			set_flag_n(Index_Registers[REGISTER_X]);
 			set_flag_z(Index_Registers[REGISTER_X]);
@@ -1597,7 +1645,7 @@ void Group_1(BYTE opcode)
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
-				Index_Registers[REGISTER_X] = Memory[address];
+				Memory[address] = Index_Registers[REGISTER_X];
 			}
 			set_flag_n(Index_Registers[REGISTER_X]);
 			set_flag_z(Index_Registers[REGISTER_X]);
@@ -1609,7 +1657,7 @@ void Group_1(BYTE opcode)
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
-				Index_Registers[REGISTER_X] = Memory[address];
+				Memory[address] = Index_Registers[REGISTER_X];
 			}
 			set_flag_n(Index_Registers[REGISTER_X]);
 			set_flag_z(Index_Registers[REGISTER_X]);
@@ -1621,7 +1669,7 @@ void Group_1(BYTE opcode)
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
-				Index_Registers[REGISTER_X] = Memory[address];
+				Memory[address] = Index_Registers[REGISTER_X];
 			}
 			set_flag_n(Index_Registers[REGISTER_X]);
 			set_flag_z(Index_Registers[REGISTER_X]);
@@ -1637,7 +1685,7 @@ void Group_1(BYTE opcode)
 			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8);
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
-				Index_Registers[REGISTER_X] = Memory[address];
+				Memory[address] = Index_Registers[REGISTER_X];
 			}
 			set_flag_n(Index_Registers[REGISTER_X]);
 			set_flag_z(Index_Registers[REGISTER_X]);
@@ -1969,7 +2017,7 @@ void Group_1(BYTE opcode)
 					offset = offset + 0xFF00;
 				}
 				address = ProgramCounter + offset;
-				ProgramCounter = address; //EXACT SAME CHANGE  != to == fr carry clear for multiple flags set up multiple varibles
+				ProgramCounter = address; 
 			}
 			break;
 
@@ -2018,11 +2066,32 @@ void Group_1(BYTE opcode)
 
 
 		case 0xF5: //BVC - Branch on overflow clear
-
+			LB = fetch();
+			if ((Flags & FLAG_V) == 0)
+			{
+				offset = (WORD)LB;
+				if ((offset & 0x80) != 0)
+				{
+					offset = offset + 0xFF00;
+				}
+				address = ProgramCounter + offset;
+				ProgramCounter = address;
+			}
 			break;
 
 
 		case 0xF6: //BVS - branch on overflow set
+			LB = fetch();
+			if ((Flags & FLAG_V) != 0)
+			{
+				offset = (WORD)LB;
+				if ((offset & 0x80) != 0)
+				{
+					offset = offset + 0xFF00;
+				}
+				address = ProgramCounter + offset;
+				ProgramCounter = address;
+			}
 
 			break;
 
