@@ -1693,15 +1693,16 @@ void Group_1(BYTE opcode)
 
 		case 0x0C: //MAY - Transfers Accumulator to Register Y
 			data = Registers[REGISTER_A];
-			Registers[REGISTER_Y] = data;
-			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
+			Index_Registers[REGISTER_Y] = data;
+			set_flag_n(Index_Registers[REGISTER_Y]); //setting flags using Accumulator
 			break;
 
 
 		case 0x0D: //MYA - Transfers register Y to Accumulator 
-			data = Registers[REGISTER_A];
-			Registers[REGISTER_Y] = data;
-			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
+			data = Index_Registers[REGISTER_Y];
+			Registers[REGISTER_A] = data;
+			set_flag_n(Index_Registers[REGISTER_Y]); //setting flags using Accumulator
+			set_flag_z(Index_Registers[REGISTER_Y]);
 			break;
 
 
@@ -1966,6 +1967,7 @@ void Group_1(BYTE opcode)
 				Memory[StackPointer] = (BYTE)((ProgramCounter >> 8) & 0xFF);
 				StackPointer--;
 			}
+			ProgramCounter = address;
 			break;
 		
 
@@ -2018,14 +2020,14 @@ void Group_1(BYTE opcode)
 					offset = offset + 0xFF00;
 				}
 				address = ProgramCounter + offset;
-				ProgramCounter = address; //EXACT SAME CHANGE  != to == fr carry clear for multiple flags set up multiple varibles
+				ProgramCounter = address; 
 			}
 			break;
 
 
 		case 0xF3: //BNE Branch on Result not zero
 			LB = fetch(); //Sets new values for HB and LB
-			if ((Flags & FLAG_Z) != 0) //if zero set
+			if ((Flags & FLAG_Z) == 0) 
 			{
 				offset = (WORD)LB;
 				if ((offset & 0x80) != 0)
@@ -2033,13 +2035,23 @@ void Group_1(BYTE opcode)
 					offset = offset + 0xFF00;
 				}
 				address = ProgramCounter + offset;
-				ProgramCounter = address; //EXACT SAME CHANGE  != to == fr carry clear for multiple flags set up multiple varibles
+				ProgramCounter = address; 
 			}
 			break;
 
 		
-		case 0xF4: //BEQ - Branch on carry set
-
+		case 0xF4: //BEQ - Branch on result eqaul to zero
+			LB = fetch(); //Sets new values for HB and LB
+			if ((Flags & FLAG_Z) != 0) 
+			{
+				offset = (WORD)LB;
+				if ((offset & 0x80) != 0)
+				{
+					offset = offset + 0xFF00;
+				}
+				address = ProgramCounter + offset;
+				ProgramCounter = address; 
+			}
 			break;
 
 
@@ -2070,22 +2082,51 @@ void Group_1(BYTE opcode)
 				address = ProgramCounter + offset;
 				ProgramCounter = address;
 			}
-
 			break;
 
 
-		case 0xF7: //BMI - Breanch on negative result
-
+		case 0xF7: //BMI - Branch on negative result
+			LB = fetch();
+			if ((Flags & FLAG_N) != 0) 
+			{
+				offset = (WORD)LB;
+				if ((offset & 0x80) != 0)
+				{
+					offset = offset + 0xFF00;
+				}
+				address = ProgramCounter + offset;
+				ProgramCounter = address;
+			}
 			break;
 
 
 		case 0xF8: //BPL - Branch on positive result
-
+			LB = fetch();
+			if ((Flags & FLAG_N) == 0)
+			{
+				offset = (WORD)LB;
+				if ((offset & 0x80) != 0)
+				{
+					offset = offset + 0xFF00;
+				}
+				address = ProgramCounter + offset;
+				ProgramCounter = address;
+			}
 			break;
 
 
 		case 0xF9: //BGE - Branch on result less than or equal to zero
-
+			LB = fetch();
+			if ((Flags & FLAG_Z) != 0 | (Flags & FLAG_N) !=0)
+			{
+				offset = (WORD)LB;
+				if ((offset & 0x80) != 0)
+				{
+					offset = offset + 0xFF00;
+				}
+				address = ProgramCounter + offset;
+				ProgramCounter = address;
+			}
 			break;
 
 
@@ -2095,12 +2136,32 @@ void Group_1(BYTE opcode)
 
 
 		case 0xFB: //BGT - Branch on result less than zero
-
+			LB = fetch();
+			if ((Flags & FLAG_N) == 0)
+			{
+				offset = (WORD)LB;
+				if ((offset & 0x80) != 0)
+				{
+					offset = offset + 0xFF00;
+				}
+				address = ProgramCounter + offset;
+				ProgramCounter = address;
+			}
 			break;
 
 
 		case 0xFC: //BLT - Branch on result greater than zero
-
+			LB = fetch();
+			if ((Flags & FLAG_N) != 0)
+			{
+				offset = (WORD)LB;
+				if ((offset & 0x80) != 0)
+				{
+					offset = offset + 0xFF00;
+				}
+				address = ProgramCounter + offset;
+				ProgramCounter = address;
+			}
 			break;
 
 		case 0x18: //CLC - Clear Carry flag
@@ -2134,6 +2195,7 @@ void Group_1(BYTE opcode)
 
 
 		case 0x73: //NOP - no operation
+
 			break;
 
 
