@@ -5,6 +5,10 @@
 //		22/02/19 - Added SUB, OR, COMA, RLCA, ASLA, SARA
 //	Description: Emulates the Chimera-2018-E Processor
 //	User Advice: None
+
+//Checklist
+//Completed and tested
+//	LDA,STO,ADD,SUB,CMP,OR,AND,EOR,BT,ADI,SBI,CPI,ORI,ANI,SRI,INCA,DECA,RCRA,RLCA,ASLA,LD,LDX,STX,LODS,CSA,PUSH,POP,JMP,MV,BRA,BCC,BCS,BEQ,BVC,BVS,CLC,SEC,CLI,STI,STV,CLV,HLT
 #include "stdafx.h"
 #include <winsock2.h>
 
@@ -27,7 +31,7 @@
 SOCKADDR_IN server_addr;
 SOCKADDR_IN client_addr;
 
-SOCKET sock;  // This is our socket, it is the handle to the IO address to read/write packets
+SOCKET sock;  //This is our socket, it is the handle to the IO address to read/write packets
 
 WSADATA data;
 
@@ -37,7 +41,7 @@ char hex_file [MAX_BUFFER_SIZE];
 char trc_file [MAX_BUFFER_SIZE];
 
 //////////////////////////
-//   Registers          //
+//		Registers		//
 //////////////////////////
 
 #define FLAG_I  0x10 //one bit each
@@ -56,15 +60,15 @@ char trc_file [MAX_BUFFER_SIZE];
 BYTE Index_Registers[2];
 
 BYTE Registers[6];
-BYTE Flags; //to store flgs
+BYTE Flags; //To store flags
 BYTE saved_flags;
 WORD ProgramCounter;
 WORD StackPointer;
 
 
-////////////
-// Memory //
-////////////
+//////////////////////
+//		Memory		//
+//////////////////////
 
 #define MEMORY_SIZE	65536
 
@@ -84,9 +88,9 @@ BYTE Memory[MEMORY_SIZE];
 #define TEST_ADDRESS_12  0x0205
 
 
-///////////////////////
-// Control variables //
-///////////////////////
+//////////////////////////////////
+//		Control variables		//
+//////////////////////////////////
 
 bool memory_in_range = true;
 bool halt = false;
@@ -372,9 +376,9 @@ char opcode_mneumonics[][14] =
 
 }; 
 
-////////////////////////////////////////////////////////////////////////////////
-//                           Simulator/Emulator (Start)                       //
-////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+//							Simulator/Emulator (Start)							//
+//////////////////////////////////////////////////////////////////////////////////
 
 BYTE fetch() //Dont edit
 {
@@ -395,7 +399,7 @@ BYTE fetch() //Dont edit
 
 //	Function: set_flag_v
 //	Description: Set flag depending on value passed
-//	Paramaters: in1 and in2 input registers out1 is result
+//	Paramaters: in1 and in2 input registers out1 is result of addition subtraction etc
 //	Returns: none
 //	warinings: none
 void set_flag_v(BYTE in1, BYTE in2, BYTE out1)
@@ -408,11 +412,11 @@ void set_flag_v(BYTE in1, BYTE in2, BYTE out1)
 	regOut = out1;
 	if ((((reg1in & 0x80) == 0x80) && ((reg2in & 0x80) == 0x80) && ((regOut & 0x80) != 0x80)) || (((reg1in & 0x80) != 0x80) && ((reg2in & 0x80) != 0x80) && ((regOut & 0x80) == 0x80))) //overflow
 	{
-		Flags = Flags | FLAG_V;
+		Flags = Flags | FLAG_V; //Set Flag
 	}
 	else
 	{
-		Flags = Flags & (0xFF - FLAG_V);
+		Flags = Flags & (0xFF - FLAG_V); //Clear Flag
 	}
 }
 
@@ -428,11 +432,11 @@ void set_flag_n(BYTE inReg)
 
 	if ((reg & 0x80) != 0) // msbit set 
 	{
-		Flags = Flags | FLAG_N;
+		Flags = Flags | FLAG_N; //Set Flag
 	}
 	else
 	{
-		Flags = Flags & (0xFF - FLAG_N);
+		Flags = Flags & (0xFF - FLAG_N); //Clear Flag
 	}
 }
 
@@ -446,177 +450,180 @@ void set_flag_z(BYTE inReg)
 
 	if (inReg == 0x00)
 	{
-		Flags = Flags | FLAG_Z;
+		Flags = Flags | FLAG_Z; //Set Flag
 	}
 	else
 	{
-		Flags = Flags & (0xFF - FLAG_Z);
+		Flags = Flags & (0xFF - FLAG_Z); //Clear Flag
 	}
 }
 
 void Group_1(BYTE opcode)
 {
-	BYTE LB = 0;
-	BYTE HB = 0;
-	WORD address = 0;
-	WORD data = 0;
-	WORD temp_word = 0;
-	BYTE param1, param2;
-	WORD offset;
+	BYTE LB = 0; //Used to Create 16bit memory addressses
+	BYTE HB = 0; //Used to Create 16bit memory addressses
+	WORD address = 0; //16 bit used to store HB and LB
+	WORD data = 0; //Used within opcodes to move data
+	WORD temp_word = 0; //Used as a temporary value to do addtions subtraction etc before written back to Accumulator
+	BYTE param1, param2; //used to increase maintainabilty in instructions that require a byte multiple times eg. ADI SBI etc.
+	WORD offset; //16 bit used in branching
 
 	switch(opcode) 
 	{
-		case 0x90: //LDA - Loads Memory into Accumulator
-			data = fetch();
-			Registers[REGISTER_A] = data;
-			set_flag_n(Registers[REGISTER_A]);
+		//LDA - Loads Memory into Accumulator
+		case 0x90: //Immediate Addressing
+			data = fetch(); //fetching memory and storing in data
+			Registers[REGISTER_A] = data; //Loads memory into Accumulator
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xA0:
-			HB = fetch();
-			LB = fetch();
-			address += (WORD)((WORD)HB << 8) + LB;
+		case 0xA0: //Absolute Addressing
+			HB = fetch(); //Sets HB (High Byte) 
+			LB = fetch(); //Sets LB (Low Byte) 
+			address += (WORD)((WORD)HB << 8) + LB; //Calculating address in memory by pushing HB left and putting LB on the end
 			if (address >= 0 && address < MEMORY_SIZE){
-				Registers[REGISTER_A] = Memory[address];
+				Registers[REGISTER_A] = Memory[address]; //Makes Accumulator = to memory (loading memory into Accumulator)
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xB0:
-			address += Index_Registers[REGISTER_X];
-			HB = fetch();
+		case 0xB0: //Indexed Absolute Adressing X
+			address += Index_Registers[REGISTER_X]; //Used in conjunction with second and third byte of an instruction
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
-			address += (WORD)((WORD)HB << 8) + LB;
+			address += (WORD)((WORD)HB << 8) + LB; //Calculating address in memory by pushing HB left and putting LB on the end
 			if (address >= 0 && address < MEMORY_SIZE) {
-				Registers[REGISTER_A] = Memory[address];
+				Registers[REGISTER_A] = Memory[address]; //Makes Accumulator = to memory (loading memory into Accumulator)
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xC0:
-			address += Index_Registers[REGISTER_Y];
-			HB = fetch();
+		case 0xC0: //Indexed Absolute Adressing Y
+			address += Index_Registers[REGISTER_Y]; //Used in conjunction with second and third byte of an instruction
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
-			address += (WORD)((WORD)HB << 8) + LB;
+			address += (WORD)((WORD)HB << 8) + LB; //Calculating address in memory by pushing HB left and putting LB on the end
 			if (address >= 0 && address < MEMORY_SIZE){
-				Registers[REGISTER_A] = Memory[address];
+				Registers[REGISTER_A] = Memory[address]; //Makes Accumulator = to memory (loading memory into Accumulator)
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xD0:
-			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
-			HB = fetch();
+		case 0xD0: //Indexed Absolute Adressing X,Y
+			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X]; //Used in conjunction with second and third byte of an instruction
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
-			address += (WORD)((WORD)HB << 8) + LB;
+			address += (WORD)((WORD)HB << 8) + LB; //Calculating address in memory by pushing HB left and putting LB on the end
 			if (address >= 0 && address < MEMORY_SIZE){
-				Registers[REGISTER_A] = Memory[address];
+				Registers[REGISTER_A] = Memory[address]; //Makes Accumulator = to memory (loading memory into Accumulator)
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xE0:
-			HB = fetch();
+		case 0xE0: //Indirect Addressing X,Y
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
-			address = (WORD)((WORD)HB << 8) + LB;
-			HB = Memory[address]; 
+			address = (WORD)((WORD)HB << 8) + LB; //Calculating address in memory by pushing HB left and putting LB on the end
+			HB = Memory[address];  
 			LB = Memory[address + 1];
-			address = (WORD)((WORD)HB << 8) + LB;
-			address += Index_Registers[REGISTER_X];
+			address = (WORD)((WORD)HB << 8) + LB; //Calculating address in memory by pushing HB left and putting LB on the end
+			address += Index_Registers[REGISTER_X];  //Used in conjunction with second and third byte of an instruction
 			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8);
 			if (address >= 0 && address < MEMORY_SIZE)	{
-				Registers[REGISTER_A] = Memory[address];
+				Registers[REGISTER_A] = Memory[address]; //Makes Accumulator = to memory (loading memory into Accumulator)
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break; 
 
 
-		case 0xAC: //STO - Stores Accumulator into Memory
-			HB = fetch();
+		//STO - Stores Accumulator into Memory
+		case 0xAC: //Immediate Addressing
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
-			address += (WORD)((WORD)HB << 8) + LB;
+			address += (WORD)((WORD)HB << 8) + LB; //Calculating address in memory by pushing HB left and putting LB on the end
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
-				Memory[address] = Registers[REGISTER_A];
+				Memory[address] = Registers[REGISTER_A]; //Makes Memory = Register A (Accumulator)
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xBC:
+		case 0xBC: //Absolute Addressing
 			address += Index_Registers[REGISTER_X];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
-			address += (WORD)((WORD)HB << 8) + LB;
+			address += (WORD)((WORD)HB << 8) + LB; //Calculating address in memory by pushing HB left and putting LB on the end
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
-				Memory[address] = Registers[REGISTER_A];
+				Memory[address] = Registers[REGISTER_A]; //Makes Memory = Register A (Accumulator)
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xCC:
+		case 0xCC: //Indexed Absolute Adressing X
 			address += Index_Registers[REGISTER_Y];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
-			address += (WORD)((WORD)HB << 8) + LB;
+			address += (WORD)((WORD)HB << 8) + LB; //Calculating address in memory by pushing HB left and putting LB on the end
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
-				Memory[address] = Registers[REGISTER_A];
+				Memory[address] = Registers[REGISTER_A]; //Makes Memory = Register A (Accumulator)
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xDC:
+		case 0xDC: //Indexed Absolute Adressing Y
 			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
-			address += (WORD)((WORD)HB << 8) + LB;
+			address += (WORD)((WORD)HB << 8) + LB; //Calculating address in memory by pushing HB left and putting LB on the end
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
-				Memory[address] = Registers[REGISTER_A];
+				Memory[address] = Registers[REGISTER_A]; //Makes Memory = Register A (Accumulator)
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
-		case 0xEC:
-			HB = fetch();
+		case 0xEC: //Indirect Addressing X,Y
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
-			address = (WORD)((WORD)HB << 8) + LB;
+			address = (WORD)((WORD)HB << 8) + LB; //Calculating address in memory by pushing HB left and putting LB on the end
 			HB = Memory[address];
 			LB = Memory[address + 1];
-			address = (WORD)((WORD)HB << 8) + LB;
+			address = (WORD)((WORD)HB << 8) + LB; //Calculating address in memory by pushing HB left and putting LB on the end
 			address += Index_Registers[REGISTER_X];
 			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8);
 			if (address >= 0 && address < MEMORY_SIZE) {
-				Memory[address] = Registers[REGISTER_A];
+				Memory[address] = Registers[REGISTER_A]; //Makes Memory = Register A (Accumulator)
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 			
 
 		case 0x23: //ADD - Register added to Accumulator with carry
-			temp_word = (WORD)Registers[REGISTER_A] + (WORD)Registers[REGISTER_B];
-
-			if ((Flags & FLAG_C) != 0){
+			temp_word = (WORD)Registers[REGISTER_A] + (WORD)Registers[REGISTER_B]; //Add contents of Register A and B 
+			if ((Flags & FLAG_C) != 0) //increment temp word if carry is set
+			{ 
 				temp_word++;
 			}
-			if (temp_word >= 0x100){
-				Flags = Flags | FLAG_C;
+			if (temp_word >= 0x100){ 
+				Flags = Flags | FLAG_C; //Set Carry flag 
 			}
-			else{
-				Flags = Flags & (0xFF - FLAG_C);
+			else
+			{
+				Flags = Flags & (0xFF - FLAG_C); //Clear Carry flag
 			}
-			set_flag_v(Registers[REGISTER_A], Registers[REGISTER_B], (BYTE)temp_word);
-			set_flag_n((BYTE)temp_word);
+			set_flag_v(Registers[REGISTER_A], Registers[REGISTER_B], (BYTE)temp_word); //Set flags by passing value one value two and the result of the operation, in this case ADD
+			set_flag_n((BYTE)temp_word); //Set  Negative and vero flag by passsing result 
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x33: 
-			temp_word = (WORD)Registers[REGISTER_A] + (WORD)Registers[REGISTER_C];
-
-			if ((Flags & FLAG_C) != 0) {
+		case 0x33: //Addressing A-C
+			temp_word = (WORD)Registers[REGISTER_A] + (WORD)Registers[REGISTER_C]; 
+			if ((Flags & FLAG_C) != 0) 
+			{
 				temp_word++;
 			}
 			if (temp_word >= 0x100) {
@@ -625,18 +632,19 @@ void Group_1(BYTE opcode)
 			else {
 				Flags = Flags & (0xFF - FLAG_C);
 			}
-			set_flag_v(Registers[REGISTER_A], Registers[REGISTER_C], (BYTE)temp_word);
+			set_flag_v(Registers[REGISTER_A], Registers[REGISTER_C], (BYTE)temp_word); 
 			set_flag_n((BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x43: 
+		case 0x43: //Addressing A-D
 			temp_word = (WORD)Registers[REGISTER_A] + (WORD)Registers[REGISTER_D];
-
-			if ((Flags & FLAG_C) != 0) {
+			if ((Flags & FLAG_C) != 0) 
+			{
 				temp_word++;
 			}
-			if (temp_word >= 0x100) {
+			if (temp_word >= 0x100) 
+			{
 				Flags = Flags | FLAG_C;
 			}
 			else {
@@ -647,13 +655,14 @@ void Group_1(BYTE opcode)
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x53: 
+		case 0x53: //Addressing A-E
 			temp_word = (WORD)Registers[REGISTER_A] + (WORD)Registers[REGISTER_E];
-
-			if ((Flags & FLAG_C) != 0) {
+			if ((Flags & FLAG_C) != 0) 
+			{
 				temp_word++;
 			}
-			if (temp_word >= 0x100) {
+			if (temp_word >= 0x100) 
+			{
 				Flags = Flags | FLAG_C;
 			}
 			else {
@@ -664,13 +673,14 @@ void Group_1(BYTE opcode)
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x63: 
-			temp_word = (WORD)Registers[REGISTER_A] + (WORD)Registers[REGISTER_F];
-
-			if ((Flags & FLAG_C) != 0) {
+		case 0x63: //Addressing A-F
+			temp_word = (WORD)Registers[REGISTER_A] + (WORD)Registers[REGISTER_F]; 
+			if ((Flags & FLAG_C) != 0) 
+			{
 				temp_word++;
 			}
-			if (temp_word >= 0x100) {
+			if (temp_word >= 0x100) 
+			{
 				Flags = Flags | FLAG_C;
 			}
 			else {
@@ -684,25 +694,25 @@ void Group_1(BYTE opcode)
 		
 
 		case 0x24: //SUB - Register Subtracted to accumulator with carry
-			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_B];
-			if ((Flags & FLAG_C) != 0)
+			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_B]; //Sub contents of Register A and B 
+			if ((Flags & FLAG_C) != 0) //Decrement temp word if carry is set
 			{
 				temp_word--;
 			}
 			if (temp_word >= 0x100)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //Set Carry flag 
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //Clear Carry flag 
 			}
-			set_flag_v(Registers[REGISTER_A], -Registers[REGISTER_B], (BYTE)temp_word);
-			set_flag_n((BYTE)temp_word);
+			set_flag_v(Registers[REGISTER_A], -Registers[REGISTER_B], (BYTE)temp_word); //Set flags by passing value one value two and the result of the operation, in this case SUB
+			set_flag_n((BYTE)temp_word); //Set remaining flags
 			set_flag_z((BYTE)temp_word);
-			Registers[REGISTER_A] = (BYTE)temp_word;
+			Registers[REGISTER_A] = (BYTE)temp_word; //Return value to Accumulator
 			break;
-		case 0x34:
+		case 0x34: //Addressing A-C
 			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_C];
 			if ((Flags & FLAG_C) != 0)
 			{
@@ -721,7 +731,7 @@ void Group_1(BYTE opcode)
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x44:
+		case 0x44: //Addressing A-D
 			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_D];
 			if ((Flags & FLAG_C) != 0)
 			{
@@ -740,7 +750,7 @@ void Group_1(BYTE opcode)
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x54:
+		case 0x54: //Addressing A-E
 			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_E];
 			if ((Flags & FLAG_C) != 0)
 			{
@@ -759,7 +769,7 @@ void Group_1(BYTE opcode)
 			set_flag_z((BYTE)temp_word);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x64:
+		case 0x64: //Addressing A-F
 			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_F];
 			if ((Flags & FLAG_C) != 0)
 			{
@@ -781,20 +791,20 @@ void Group_1(BYTE opcode)
 		
 
 		case 0x25: //CMP - Register compared to Accumulator
-			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_B];
-			if (temp_word >= 0x100)
+			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_B]; //Sub contents of Register A and B 
+			if (temp_word >= 0x100) 
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //set carry flag
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //clear carry flag
 			}
-			set_flag_n((BYTE)temp_word);
+			set_flag_n((BYTE)temp_word); //set flags
 			set_flag_v(Registers[REGISTER_A], -Registers[REGISTER_B], (BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
 			break;
-		case 0x35:
+		case 0x35: //Addressing A-C
 			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_C];
 			if (temp_word >= 0x100)
 			{
@@ -808,7 +818,7 @@ void Group_1(BYTE opcode)
 			set_flag_v(Registers[REGISTER_A], -Registers[REGISTER_C], (BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
 			break;
-		case 0x45:
+		case 0x45: //Addressing A-D
 			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_D];
 			if (temp_word >= 0x100)
 			{
@@ -822,7 +832,7 @@ void Group_1(BYTE opcode)
 			set_flag_v(Registers[REGISTER_A], -Registers[REGISTER_D], (BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
 			break;
-		case 0x55:
+		case 0x55: //Addressing A-E
 			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_E];
 			if (temp_word >= 0x100)
 			{
@@ -836,7 +846,7 @@ void Group_1(BYTE opcode)
 			set_flag_v(Registers[REGISTER_A], -Registers[REGISTER_E], (BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
 			break;
-		case 0x65:
+		case 0x65: //Addressing A-F
 			temp_word = (WORD)Registers[REGISTER_A] - (WORD)Registers[REGISTER_F];
 			if (temp_word >= 0x100)
 			{
@@ -853,21 +863,21 @@ void Group_1(BYTE opcode)
 
 
 		case 0x26: //OR - Register bitwise inclusive or with Accumulator
-			temp_word = (WORD)Registers[REGISTER_A] | (WORD)Registers[REGISTER_B];
+			temp_word = (WORD)Registers[REGISTER_A] | (WORD)Registers[REGISTER_B]; //Contents of Register A OR with Register B
 			if (temp_word >= 0x100)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //Set Carrry flag
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //Clear Carry flag
 			}
-			set_flag_n((BYTE)temp_word);
+			set_flag_n((BYTE)temp_word); //Set Flags
 			set_flag_z((BYTE)temp_word);
 			Flags = Flags & (0xFF - FLAG_V); 
-			Registers[REGISTER_A] = (BYTE)temp_word;
+			Registers[REGISTER_A] = (BYTE)temp_word; //Write result back to Accumulator
 			break;
-		case 0x36:
+		case 0x36: //Addressing A-C
 			temp_word = (WORD)Registers[REGISTER_A] | (WORD)Registers[REGISTER_C];
 			if (temp_word >= 0x100)
 			{
@@ -882,7 +892,7 @@ void Group_1(BYTE opcode)
 			Flags = Flags & (0xFF - FLAG_V); 
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x46:
+		case 0x46: //Addressing A-D
 			temp_word = (WORD)Registers[REGISTER_A] | (WORD)Registers[REGISTER_D];
 			if (temp_word >= 0x100)
 			{
@@ -897,7 +907,7 @@ void Group_1(BYTE opcode)
 			Flags = Flags & (0xFF - FLAG_V);
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x56:
+		case 0x56: //Addressing A-E
 			temp_word = (WORD)Registers[REGISTER_A] | (WORD)Registers[REGISTER_E];
 			if (temp_word >= 0x100)
 			{
@@ -912,7 +922,7 @@ void Group_1(BYTE opcode)
 			Flags = Flags & (0xFF - FLAG_V); 
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x66:
+		case 0x66: //Addressing A-F
 			temp_word = (WORD)Registers[REGISTER_A] | (WORD)Registers[REGISTER_F];
 			if (temp_word >= 0x100)
 			{
@@ -930,21 +940,21 @@ void Group_1(BYTE opcode)
 
 
 		case 0x27: //AND - Register	bitwise and with accumulator
-			temp_word = (WORD)Registers[REGISTER_A] & (WORD)Registers[REGISTER_B];
+			temp_word = (WORD)Registers[REGISTER_A] & (WORD)Registers[REGISTER_B]; //Contents of Register A AND with contents of Register B
 			if (temp_word >= 0x100)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //set carry flag
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //clear carry flag
 			}
-			set_flag_n((BYTE)temp_word);
+			set_flag_n((BYTE)temp_word); //set flags
 			set_flag_z((BYTE)temp_word);
 			Flags = Flags & (0xFF - FLAG_V); 
-			Registers[REGISTER_A] = (BYTE)temp_word;
+			Registers[REGISTER_A] = (BYTE)temp_word; //write value back to Accumulator
 			break;
-		case 0x37:
+		case 0x37: //Addressing A-C
 			temp_word = (WORD)Registers[REGISTER_A] & (WORD)Registers[REGISTER_C];
 			if (temp_word >= 0x100)
 			{
@@ -959,7 +969,7 @@ void Group_1(BYTE opcode)
 			Flags = Flags & (0xFF - FLAG_V); 
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x47:
+		case 0x47: //Addressing A-D
 			temp_word = (WORD)Registers[REGISTER_A] & (WORD)Registers[REGISTER_D];
 			if (temp_word >= 0x100)
 			{
@@ -974,7 +984,7 @@ void Group_1(BYTE opcode)
 			Flags = Flags & (0xFF - FLAG_V); 
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x57:
+		case 0x57: //Addressing A-E
 			temp_word = (WORD)Registers[REGISTER_A] & (WORD)Registers[REGISTER_E];
 			if (temp_word >= 0x100)
 			{
@@ -989,7 +999,7 @@ void Group_1(BYTE opcode)
 			Flags = Flags & (0xFF - FLAG_V); 
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x67:
+		case 0x67: //Addressing A-F
 			temp_word = (WORD)Registers[REGISTER_A] & (WORD)Registers[REGISTER_F];
 			if (temp_word >= 0x100)
 			{
@@ -1007,21 +1017,21 @@ void Group_1(BYTE opcode)
 
 
 		case 0x28: //EOR - Register bitwise exclusive or with Accumulator
-			temp_word = (WORD)Registers[REGISTER_A] ^ (WORD)Registers[REGISTER_B];
+			temp_word = (WORD)Registers[REGISTER_A] ^ (WORD)Registers[REGISTER_B]; //Contents of Register A XOR with contents of Register B
 			if (temp_word >= 0x100)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //set carry flag
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //clear carry flag
 			}
-			set_flag_n((BYTE)temp_word);
+			set_flag_n((BYTE)temp_word); //set flags
 			set_flag_z((BYTE)temp_word);
 			Flags = Flags & (0xFF - FLAG_V); 
-			Registers[REGISTER_A] = (BYTE)temp_word;
+			Registers[REGISTER_A] = (BYTE)temp_word; //write back to Accumulator
 			break;
-		case 0x38:
+		case 0x38: //Addressing A-C
 			temp_word = (WORD)Registers[REGISTER_A] ^ (WORD)Registers[REGISTER_C];
 			if (temp_word >= 0x100)
 			{
@@ -1036,7 +1046,7 @@ void Group_1(BYTE opcode)
 			Flags = Flags & (0xFF - FLAG_V); 
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x48:
+		case 0x48: //Addressing A-D
 			temp_word = (WORD)Registers[REGISTER_A] ^ (WORD)Registers[REGISTER_D];
 			if (temp_word >= 0x100)
 			{
@@ -1051,7 +1061,7 @@ void Group_1(BYTE opcode)
 			Flags = Flags & (0xFF - FLAG_V); 
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x58:
+		case 0x58: //Addressing A-E
 			temp_word = (WORD)Registers[REGISTER_A] ^ (WORD)Registers[REGISTER_E];
 			if (temp_word >= 0x100)
 			{
@@ -1066,7 +1076,7 @@ void Group_1(BYTE opcode)
 			Flags = Flags & (0xFF - FLAG_V); 
 			Registers[REGISTER_A] = (BYTE)temp_word;
 			break;
-		case 0x68:
+		case 0x68: //Addressing A-F
 			temp_word = (WORD)Registers[REGISTER_A] ^ (WORD)Registers[REGISTER_F];
 			if (temp_word >= 0x100)
 			{
@@ -1084,20 +1094,20 @@ void Group_1(BYTE opcode)
 
 
 		case 0x29: //BT Register bit tested with accumulator
-			temp_word = (WORD)Registers[REGISTER_A] & (WORD)Registers[REGISTER_B];
+			temp_word = (WORD)Registers[REGISTER_A] & (WORD)Registers[REGISTER_B]; //Contents of register A BitTest with contents of register B
 			if (temp_word >= 0x100)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //set carry flag
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //clear carry flag
 			}
-			set_flag_n((BYTE)temp_word);
+			set_flag_n((BYTE)temp_word); //set flags
 			set_flag_z((BYTE)temp_word);
 			Flags = Flags & (0xFF - FLAG_V); 
 			break;
-		case 0x39:
+		case 0x39: //Addressing A-C
 			temp_word = (WORD)Registers[REGISTER_A] & (WORD)Registers[REGISTER_C];
 			if (temp_word >= 0x100)
 			{
@@ -1111,7 +1121,7 @@ void Group_1(BYTE opcode)
 			set_flag_z((BYTE)temp_word);
 			Flags = Flags & (0xFF - FLAG_V); 
 			break;
-		case 0x49:
+		case 0x49: //Addressing A-D
 			temp_word = (WORD)Registers[REGISTER_A] & (WORD)Registers[REGISTER_D];
 			if (temp_word >= 0x100)
 			{
@@ -1125,7 +1135,7 @@ void Group_1(BYTE opcode)
 			set_flag_z((BYTE)temp_word);
 			Flags = Flags & (0xFF - FLAG_V);
 			break;
-		case 0x59:
+		case 0x59: //Addressing A-E
 			temp_word = (WORD)Registers[REGISTER_A] & (WORD)Registers[REGISTER_E];
 			if (temp_word >= 0x100)
 			{
@@ -1139,7 +1149,7 @@ void Group_1(BYTE opcode)
 			set_flag_z((BYTE)temp_word);
 			Flags = Flags & (0xFF - FLAG_V); 
 			break;
-		case 0x69:
+		case 0x69: //Addressing A-F
 			temp_word = (WORD)Registers[REGISTER_A] & (WORD)Registers[REGISTER_F];
 			if (temp_word >= 0x100)
 			{
@@ -1157,60 +1167,60 @@ void Group_1(BYTE opcode)
 
 		case 0x82: //ADI - Data added to Accumulator with carry
 			param2 = fetch();
-			temp_word = (WORD)Registers[REGISTER_A] + (WORD)fetch();
+			temp_word = (WORD)Registers[REGISTER_A] + (WORD)fetch(); //Add
 			if ((Flags & FLAG_C) != 0)
 			{
-				temp_word++;
+				temp_word++; //Increment if carry is set
 			}
 			if (temp_word >= 0x100)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //set carry flag
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //clear carry flag
 			}
-			set_flag_v(Registers[REGISTER_A], param2, (BYTE)temp_word);
+			set_flag_v(Registers[REGISTER_A], param2, (BYTE)temp_word); //set flags
 			set_flag_n((BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
-			Registers[REGISTER_A] = (BYTE)temp_word;
+			Registers[REGISTER_A] = (BYTE)temp_word; //write value back to Accumulator 
 			break;
 	
 		
 		case 0x83: //SBI - Data subtracted to Accumulator with carry
 			param2 = fetch();
-			temp_word = (WORD)Registers[REGISTER_A] - (WORD)param2;
+			temp_word = (WORD)Registers[REGISTER_A] - (WORD)param2;  //Sub
 			if ((Flags & FLAG_C) != 0)
 			{
-				temp_word--;
+				temp_word--; //Decrement if carry is set
 			}
 			if (temp_word >= 0x100)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //set carry 
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //clear carry 
 			}
-			set_flag_v(Registers[REGISTER_A], -param2, (BYTE)temp_word);
+			set_flag_v(Registers[REGISTER_A], -param2, (BYTE)temp_word); //set flags 
 			set_flag_n((BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
-			Registers[REGISTER_A] = (BYTE)temp_word;
+			Registers[REGISTER_A] = (BYTE)temp_word; //write value back to Accumulator
 			break;
 
 
 		case 0x84: //CPI - Data Compared to Accumulator
 			param2 = fetch();
-			temp_word = (WORD)Registers[REGISTER_A] - (WORD)param2;
+			temp_word = (WORD)Registers[REGISTER_A] - (WORD)param2; //CMP (essentially the same as sub) except do not check for carrry
 			if (temp_word >= 0x100)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //set carry flags
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //clear carry flags
 			}
-			set_flag_v(Registers[REGISTER_A], -param2, (BYTE)temp_word);
+			set_flag_v(Registers[REGISTER_A], -param2, (BYTE)temp_word); //set flags
 			set_flag_n((BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
 			break;
@@ -1218,55 +1228,55 @@ void Group_1(BYTE opcode)
 
 		case 0x85: //ORI - Data bitwise inclusive or with Accumulator
 			param2 = fetch();
-			temp_word = (WORD)Registers[REGISTER_A] | (WORD)param2;
+			temp_word = (WORD)Registers[REGISTER_A] | (WORD)param2; //OR (Do not check for carry)
 			if (temp_word >= 0x100)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //set carry flag
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //clear carry flag
 			}
-			set_flag_n((BYTE)temp_word);
+			set_flag_n((BYTE)temp_word); //set remaining flags
 			set_flag_z((BYTE)temp_word);
 			Flags = Flags & (0xFF - FLAG_V);
-			Registers[REGISTER_A] = (BYTE)temp_word;
+			Registers[REGISTER_A] = (BYTE)temp_word; //write back to Accumulator
 			break;
 
 
 		case 0x86: //ANI - Data bitwise and with Accumulator
 			param2 = fetch();
-			temp_word = (WORD)Registers[REGISTER_A] & (WORD)param2;
+			temp_word = (WORD)Registers[REGISTER_A] & (WORD)param2; //AND
 			if (temp_word >= 0x100)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //set carry flag 
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C);//clear carry flag
 			}
-			set_flag_v(Registers[REGISTER_A], param2, (BYTE)temp_word);
+			set_flag_v(Registers[REGISTER_A], param2, (BYTE)temp_word); //set remaining flags
 			set_flag_n((BYTE)temp_word);
 			set_flag_z((BYTE)temp_word);
-			Registers[REGISTER_A] = (BYTE)temp_word;
+			Registers[REGISTER_A] = (BYTE)temp_word; //write back to Accumulator
 			break;
 
 
 		case 0x87: //XRI - Data bitwise exclusive or with Accumulator
 			param2 = fetch();
-			temp_word = (WORD)Registers[REGISTER_A] ^ (WORD)param2;
+			temp_word = (WORD)Registers[REGISTER_A] ^ (WORD)param2; //OR (do not check for carry)
 			if (temp_word >= 0x100)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //set Carry
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //Clear Carry 
 			}
-			set_flag_n((BYTE)temp_word);
+			set_flag_n((BYTE)temp_word); //set remaining flags
 			set_flag_z((BYTE)temp_word);
 			Flags = Flags & (0xFF - FLAG_V);
-			Registers[REGISTER_A] = (BYTE)temp_word;
+			Registers[REGISTER_A] = (BYTE)temp_word; //write back to Accumulator
 			break;
 
 		case 0x91: //TST - Bit test memory or Accumulator
@@ -1285,7 +1295,7 @@ void Group_1(BYTE opcode)
 
 
 		case 0x92: //INC - Increment Memory or Accumulator
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
@@ -1293,50 +1303,50 @@ void Group_1(BYTE opcode)
 
 				Memory[address] = Registers[REGISTER_A];
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 		case 0xA2:
 			address += Index_Registers[REGISTER_X];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
 				Memory[address] = Registers[REGISTER_A]++;
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 		case 0xB2:
 			address += Index_Registers[REGISTER_Y];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
 				Memory[address] = Registers[REGISTER_A]++;
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 		case 0xC2:
 			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
 				Memory[address] = Registers[REGISTER_A]++;
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 
 
 		case 0xD2: //INCA - Increment Memory or Accumulator
 			++Registers[REGISTER_A];
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 
@@ -1353,7 +1363,7 @@ void Group_1(BYTE opcode)
 
 		case 0xD3: //DECA - Decrement Memory or Accumulator
 			--Registers[REGISTER_A];
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 
@@ -1372,18 +1382,18 @@ void Group_1(BYTE opcode)
 			saved_flags = Flags;
 			if ((Registers[REGISTER_A] & 0x80) == 0x80)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //Set Carry flag
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //Clear Carry flag
 			}
 			Registers[REGISTER_A] = (Registers[REGISTER_A] >> 1) & 0xFE;
 			if ((saved_flags & FLAG_C) == FLAG_C)
 			{
 				Registers[REGISTER_A] = Registers[REGISTER_A] | 0x01;
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 
@@ -1402,18 +1412,18 @@ void Group_1(BYTE opcode)
 			saved_flags = Flags;
 			if ((Registers[REGISTER_A] & 0x80) == 0x80)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //Set Carry flag
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //Clear Carry flag
 			}
 			Registers[REGISTER_A] = (Registers[REGISTER_A] << 1) & 0xFE;
 			if ((saved_flags & FLAG_C) == FLAG_C)
 			{
 				Registers[REGISTER_A] = Registers[REGISTER_A] | 0x01;
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 
@@ -1432,14 +1442,14 @@ void Group_1(BYTE opcode)
 			saved_flags = Flags;
 			if ((Registers[REGISTER_A] & 0x80) == 0x80)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //Set Carry flag
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //Clear Carry flag
 			}
 			Registers[REGISTER_A] = (Registers[REGISTER_A] << 1) & 0xFE;
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 
@@ -1458,18 +1468,18 @@ void Group_1(BYTE opcode)
 			saved_flags = Flags;
 			if ((Registers[REGISTER_A] & 0x01) == 0x01)
 			{
-				Flags = Flags | FLAG_C;
+				Flags = Flags | FLAG_C; //Set Carry flag
 			}
 			else
 			{
-				Flags = Flags & (0xFF - FLAG_C);
+				Flags = Flags & (0xFF - FLAG_C); //Clear Carry flag
 			}
 			Registers[REGISTER_A] = (Registers[REGISTER_A] >> 1) & 0x7F;
 			if ((Flags & FLAG_N) == FLAG_N)
 			{
 				Registers[REGISTER_A] = Registers[REGISTER_A] | 0x80;
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 
@@ -1499,7 +1509,7 @@ void Group_1(BYTE opcode)
 
 		case 0xD9: //RALA - Rotate left without carry memory or Accumulator
 			Registers[REGISTER_A] = (Registers[REGISTER_A] << 1) & 0xFE;
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 
@@ -1528,7 +1538,7 @@ void Group_1(BYTE opcode)
 			{
 				Registers[REGISTER_A] = Registers[REGISTER_A] | 0x01;
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 
@@ -1536,58 +1546,58 @@ void Group_1(BYTE opcode)
 		case 0x31: //LDX - Loads Memory into Register X
 			data = fetch();
 			Index_Registers[REGISTER_X] = data;
-			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_n(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 		case 0x41:
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
 				Index_Registers[REGISTER_X] = Memory[address];
 			}
-			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_n(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 		case 0x51:
 			address += Index_Registers[REGISTER_X];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
 				Index_Registers[REGISTER_X] = Memory[address];
 			}
-			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_n(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 		case 0x61:
 			address += Index_Registers[REGISTER_Y];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
 				Index_Registers[REGISTER_X] = Memory[address];
 			}
-			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_n(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 		case 0x71:
 			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
 				Index_Registers[REGISTER_X] = Memory[address];
 			}
-			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_n(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 		case 0x81:
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address = (WORD)((WORD)HB << 8) + LB;
 			HB = Memory[address];
@@ -1599,60 +1609,60 @@ void Group_1(BYTE opcode)
 			{
 				Index_Registers[REGISTER_X] = Memory[address];
 			}
-			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_n(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 
 
 		case 0x02: //STX - Stores Register X into Memory
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
 				Memory[address] = Index_Registers[REGISTER_X];
 			}
-			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_n(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 		case 0x12:
 			address += Index_Registers[REGISTER_X];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
 				Memory[address] = Index_Registers[REGISTER_X];
-			}
-			set_flag_n(Index_Registers[REGISTER_X]);
+			} 
+			set_flag_n(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 		case 0x22:
 			address += Index_Registers[REGISTER_Y];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
 				Memory[address] = Index_Registers[REGISTER_X];
 			}
-			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_n(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 		case 0x32:
 			address += (WORD)((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE)
 			{
 				Memory[address] = Index_Registers[REGISTER_X];
 			}
-			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_n(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 		case 0x42:
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address = (WORD)((WORD)HB << 8) + LB;
 			HB = Memory[address];
@@ -1664,46 +1674,46 @@ void Group_1(BYTE opcode)
 			{
 				Memory[address] = Index_Registers[REGISTER_X];
 			}
-			set_flag_n(Index_Registers[REGISTER_X]);
+			set_flag_n(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			set_flag_z(Index_Registers[REGISTER_X]);
 			break;
 
 
 		case 0xE1: //DEX decrements register X
-			--Index_Registers[REGISTER_X];
-			set_flag_z(Index_Registers[REGISTER_X]);
+			--Index_Registers[REGISTER_X];  //Decrementing Regsiter X
+			set_flag_z(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			break;
 
 
 		case 0xE2: //INX - Increments Register X
-			++Index_Registers[REGISTER_X];
-			set_flag_z(Index_Registers[REGISTER_X]);
+			++Index_Registers[REGISTER_X]; //Decrementing Regsiter X
+			set_flag_z(Index_Registers[REGISTER_X]); //Setting flags using Register X 
 			break;
 
 
 		case 0x0C: //MAY - Transfers Accumulator to Register Y
 			data = Registers[REGISTER_A];
 			Registers[REGISTER_Y] = data;
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			break;
 
 
 		case 0x0D: //MYA - Transfers register Y to Accumulator 
 			data = Registers[REGISTER_A];
 			Registers[REGISTER_Y] = data;
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			break;
 
 
 		case 0xE3: //DEY decrements register Y
 			--Index_Registers[REGISTER_Y];
-			set_flag_z(Index_Registers[REGISTER_Y]);
+			set_flag_z(Index_Registers[REGISTER_Y]); //Setting flags using Register Y 
 			break;
 
 
 		case 0xE4: //INCY - Increments Register Y
 			++Index_Registers[REGISTER_Y];
-			set_flag_z(Index_Registers[REGISTER_Y]);
+			set_flag_z(Index_Registers[REGISTER_Y]); //Setting flags using Register Y 
 			break;
 
 
@@ -1711,11 +1721,11 @@ void Group_1(BYTE opcode)
 			data = fetch();
 			StackPointer = data << 8;
 			StackPointer += fetch();
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 		case 0xAD:
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE - 1)
@@ -1723,12 +1733,12 @@ void Group_1(BYTE opcode)
 				StackPointer = (WORD)(Memory[address] << 8);
 				StackPointer += Memory[address + 1];
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 		case 0xBD:
 			address += Index_Registers[REGISTER_X];
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE - 1)
@@ -1736,25 +1746,25 @@ void Group_1(BYTE opcode)
 				StackPointer = (WORD)Memory[address] << 8;
 				StackPointer += Memory[address + 1];
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 		case 0xCD:
 			address += Index_Registers[REGISTER_Y];
-			HB = fetch();
-			LB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
+			LB = fetch(); 
 			address += (WORD)((WORD)HB << 8) + LB;
 			if (address >= 0 && address < MEMORY_SIZE - 1)
 			{
 				StackPointer = (WORD)Memory[address] << 8;
 				StackPointer += Memory[address + 1];
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 		case 0xDD:
 			address += (WORD((WORD)Index_Registers[REGISTER_Y] << 8) + Index_Registers[REGISTER_X]);
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address += (WORD((WORD)HB << 8) + LB);
 			if (address >= 0 && address < MEMORY_SIZE - 1)
@@ -1762,11 +1772,11 @@ void Group_1(BYTE opcode)
 				StackPointer = (WORD)Memory[address] << 8;
 				StackPointer += Memory[address + 1];
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 		case 0xED:
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address = (WORD)((WORD)HB << 8) + LB;
 			HB = Memory[address];
@@ -1779,12 +1789,12 @@ void Group_1(BYTE opcode)
 				StackPointer = (WORD)Memory[address] << 8;
 				StackPointer += Memory[address + 1];
 			}
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 
 
-		case 0x0E: //MAS - Transters Accumulator to status register
+		case 0x0E: //MAS - Transfers Accumulator to status register
 			Flags = Registers[REGISTER_A];
 			break;
 
@@ -1797,7 +1807,7 @@ void Group_1(BYTE opcode)
 		case 0x9E: // PUSH - Pushes Register onto the stack
 			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
 			{
-				Memory[StackPointer] = Registers[REGISTER_A];
+				Memory[StackPointer] = Registers[REGISTER_A]; //Pushes Register A onto stack 
 				StackPointer--;
 			}
 			break;
@@ -1811,36 +1821,36 @@ void Group_1(BYTE opcode)
 		case 0xBE:
 			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
 			{
-				Memory[StackPointer] = Registers[REGISTER_B];
+				Memory[StackPointer] = Registers[REGISTER_B]; //Pushes Register B onto stack 
 				StackPointer--;
 			}
 			break;
 		case 0xCE:
 			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
 			{
-				Memory[StackPointer] = Registers[REGISTER_C];
+				Memory[StackPointer] = Registers[REGISTER_C]; //Pushes Register C onto stack 
 				StackPointer--;
 			}
 			break;
 		case 0xDE:
 			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
 			{
-				Memory[StackPointer] = Registers[REGISTER_D];
+				Memory[StackPointer] = Registers[REGISTER_D]; //Pushes Register D onto stack 
 				StackPointer--;
 			}
 			break;
 		case 0xEE:
 			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
 			{
-				Memory[StackPointer] = Registers[REGISTER_E];
+				Memory[StackPointer] = Registers[REGISTER_E]; //Pushes Register E onto stack 
 				StackPointer--;
 			}
 			break;
 		case 0xFE:
 			if ((StackPointer >= 1) && (StackPointer < MEMORY_SIZE))
 			{
-				Memory[StackPointer] = Registers[REGISTER_F];
-				StackPointer--;
+				Memory[StackPointer] = Registers[REGISTER_F]; //Pushes Register F onto stack 
+				StackPointer--; 
 			}
 			break;
 
@@ -1849,51 +1859,50 @@ void Group_1(BYTE opcode)
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
-				Registers[REGISTER_A] = Memory[StackPointer];
+				Registers[REGISTER_A] = Memory[StackPointer]; //Move top of stack into Register A
 			}
 			break;
 		case 0xAF: // Status Register?
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
-				Registers[REGISTER_A] = Memory[StackPointer];
+				Registers[REGISTER_A] = Memory[StackPointer]; //Move top of stack into Register A
 			}
 			break;
 		case 0xBF:
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
-				Registers[REGISTER_B] = Memory[StackPointer];
+				Registers[REGISTER_B] = Memory[StackPointer]; //Move top of stack into Register B
 			}
 			break;
 		case 0xCF:
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
-				Registers[REGISTER_C] = Memory[StackPointer];
+				Registers[REGISTER_C] = Memory[StackPointer]; //Move top of stack into Register C
 			}
 			break;
 		case 0xDF:
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
-				Registers[REGISTER_D] = Memory[StackPointer];
+				Registers[REGISTER_D] = Memory[StackPointer]; //Move top of stack into Register D
 			}
 			break;
 		case 0xEF:
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
-				Registers[REGISTER_E] = Memory[StackPointer];
-
+				Registers[REGISTER_E] = Memory[StackPointer]; //Move top of stack into Register E
 			}
 			break;
 		case 0xFF:
 			if ((StackPointer >= 0) && (StackPointer < MEMORY_SIZE - 1))
 			{
 				StackPointer++;
-				Registers[REGISTER_F] = Memory[StackPointer];
-			}
+				Registers[REGISTER_F] = Memory[StackPointer]; //Move top of stack into Register F
+			} 
 			break;
 
 
@@ -1901,14 +1910,14 @@ void Group_1(BYTE opcode)
 			data = fetch();
 			Registers[REGISTER_A] = data;
 			Registers[REGISTER_B] = data;
-			set_flag_n(Registers[REGISTER_A]);
+			set_flag_n(Registers[REGISTER_A]); //setting flags using Accumulator
 			set_flag_z(Registers[REGISTER_A]);
 			break;
 
 
 		case 0xEA://JMP - Loads memory in ProgramCounter
-			HB = fetch();
-			LB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
+			LB = fetch(); 
 			address = ((WORD)HB << 8) + (WORD)LB;
 			ProgramCounter = address;
 			break;
@@ -1916,38 +1925,38 @@ void Group_1(BYTE opcode)
 
 		case 0x07: //MV - loads Memory into register
 			data = fetch();
-			Registers[REGISTER_B] = data;
-			set_flag_n(Registers[REGISTER_B]);
+			Registers[REGISTER_B] = data; //Loads memory into Register B
+			set_flag_n(Registers[REGISTER_B]); //set flags
 			set_flag_z(Registers[REGISTER_B]);
 			break; 
 		case 0x08:
 			data = fetch();
-			Registers[REGISTER_C] = data;
-			set_flag_n(Registers[REGISTER_C]);
+			Registers[REGISTER_C] = data; //Loads memory into Register C
+			set_flag_n(Registers[REGISTER_C]); //set flags
 			set_flag_z(Registers[REGISTER_C]);
 			break; 
 		case 0x09:
 			data = fetch();
-			Registers[REGISTER_D] = data;
-			set_flag_n(Registers[REGISTER_D]);
+			Registers[REGISTER_D] = data; //Loads memory into Register D
+			set_flag_n(Registers[REGISTER_D]); //set flags
 			set_flag_z(Registers[REGISTER_D]);
 			break; 
 		case 0x0A:
 			data = fetch();
-			Registers[REGISTER_E] = data;
-			set_flag_n(Registers[REGISTER_E]);
+			Registers[REGISTER_E] = data; //Loads memory into Register E
+			set_flag_n(Registers[REGISTER_E]); //set flags
 			set_flag_z(Registers[REGISTER_E]);
 			break; 
 		case 0x0B:
 			data = fetch();
-			Registers[REGISTER_F] = data;
-			set_flag_n(Registers[REGISTER_F]);
+			Registers[REGISTER_F] = data;  //Loads memory into Register F
+			set_flag_n(Registers[REGISTER_F]); //set flags
 			set_flag_z(Registers[REGISTER_F]);
 			break; 
 
 
 		case 0xE9://JSR - Jump To subroutine
-			HB = fetch();
+			HB = fetch(); //Sets new values for HB and LB
 			LB = fetch();
 			address = ((WORD)HB << 8) + (WORD)LB;
 			if ((StackPointer >= 2) && (StackPointer < MEMORY_SIZE))
@@ -1973,7 +1982,7 @@ void Group_1(BYTE opcode)
 
 		
 		case 0xF0: //BRA - Branch always
-			LB = fetch();
+			LB = fetch(); //Sets new values for HB and LB
 			offset = (WORD)LB;
 			if ((offset & 0x80) != 0)
 			{
@@ -1985,8 +1994,8 @@ void Group_1(BYTE opcode)
 
 
 		case 0xF1: //BCC Branch on Carry clear
-			LB = fetch();
-			if ((Flags & FLAG_C) == 0)
+			LB = fetch(); //Sets new values for HB and LB
+			if ((Flags & FLAG_C) == 0) //if overflow clear
 			{
 				offset = (WORD)LB;
 				if ((offset & 0x80) != 0)
@@ -2000,8 +2009,8 @@ void Group_1(BYTE opcode)
 
 
 		case 0xF2: //BCS Branch on Carry set
-			LB = fetch();
-			if ((Flags & FLAG_C) != 0)
+			LB = fetch(); //Sets new values for HB and LB
+			if ((Flags & FLAG_C) != 0) //if carry set
 			{
 				offset = (WORD)LB;
 				if ((offset & 0x80) != 0)
@@ -2011,20 +2020,12 @@ void Group_1(BYTE opcode)
 				address = ProgramCounter + offset;
 				ProgramCounter = address; //EXACT SAME CHANGE  != to == fr carry clear for multiple flags set up multiple varibles
 			}
-			/*if ((Flags & FLAG_C) != 0)
-			{
-			BYTE temp.carry = 1;
-			}
-			else temp.carry = 0
-			}
-			*/
-			//sor overflow and negative flag ! for other way rount
 			break;
 
 
 		case 0xF3: //BNE Branch on Result not zero
-			LB = fetch();
-			if ((Flags & FLAG_Z) != 0)
+			LB = fetch(); //Sets new values for HB and LB
+			if ((Flags & FLAG_Z) != 0) //if zero set
 			{
 				offset = (WORD)LB;
 				if ((offset & 0x80) != 0)
@@ -2043,8 +2044,8 @@ void Group_1(BYTE opcode)
 
 
 		case 0xF5: //BVC - Branch on overflow clear
-			LB = fetch();
-			if ((Flags & FLAG_V) == 0)
+			LB = fetch(); 
+			if ((Flags & FLAG_V) == 0) //if overflow clear
 			{
 				offset = (WORD)LB;
 				if ((offset & 0x80) != 0)
@@ -2057,9 +2058,9 @@ void Group_1(BYTE opcode)
 			break;
 
 
-		case 0xF6: //BVS - branch on overflow set
-			LB = fetch();
-			if ((Flags & FLAG_V) != 0)
+		case 0xF6: //BVS - branch on over flow set
+			LB = fetch(); 
+			if ((Flags & FLAG_V) != 0) //if overflow set
 			{
 				offset = (WORD)LB;
 				if ((offset & 0x80) != 0)
